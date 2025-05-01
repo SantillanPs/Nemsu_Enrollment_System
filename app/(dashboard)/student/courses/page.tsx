@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +19,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Search, Filter } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Course {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  credits: number;
+  capacity: number;
+  semester: string;
+  status: "OPEN" | "CLOSED" | "CANCELLED";
+  faculty: {
+    profile: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
 
 export default function AvailableCourses() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,451 +46,48 @@ export default function AvailableCourses() {
   const [paginationState, setPaginationState] = useState<
     Record<string, number>
   >({});
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const coursesPerPage = 3;
   const [selectedCourses, setSelectedCourses] = useState<
-    Record<string, number[]>
+    Record<string, string[]>
   >({});
+  const { toast } = useToast();
 
-  // Mock data for available courses
-  const courses = [
-    {
-      id: 1,
-      code: "CS101",
-      title: "Introduction to Computer Science",
-      department: "Computer Science",
-      credits: 3,
-      instructor: "Dr. Alan Turing",
-      schedule: "Mon, Wed, Fri 10:00 AM - 11:30 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 15,
-      totalSeats: 30,
-      description:
-        "An introductory course to the fundamental principles of computing and programming.",
-      year: 1,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 2,
-      code: "CS 112",
-      title: "Fundamentals of programming - C++",
-      department: "Computer Science",
-      credits: 4,
-      instructor: "Dr. Katherine Johnson",
-      schedule: "Tue, Thu 9:00 AM - 11:00 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 8,
-      totalSeats: 25,
-      description:
-        "Introduction to differential and integral calculus of functions of one variable.",
-      year: 1,
-      semester: 1,
-      prerequisites: "MATH101",
-    },
-    {
-      id: 3,
-      code: "GE-US",
-      title: "Understanding the Self",
-      department: "English",
-      credits: 3,
-      instructor: "Prof. Jane Austen",
-      schedule: "Mon, Wed 1:00 PM - 2:30 PM",
-      location: "Humanities Building, Room 210",
-      availableSeats: 20,
-      totalSeats: 30,
-      description:
-        "Development of writing skills through the study and practice of academic writing.",
-      year: 1,
-      semester: 1,
-      prerequisites: "ENG101",
-    },
-    {
-      id: 4,
-      code: "GE-MMW",
-      title: "Mathematics in the Modern World",
-      department: "Mathematics",
-      credits: 4,
-      instructor: "Dr. Richard Feynman",
-      schedule: "Tue, Thu 1:00 PM - 3:00 PM",
-      location: "Science Building, Room 201",
-      availableSeats: 12,
-      totalSeats: 24,
-      description:
-        "An introduction to classical mechanics, thermodynamics, and wave phenomena.",
-      year: 1,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 5,
-      code: "BIO110",
-      title: "General Biology",
-      department: "Biology",
-      credits: 4,
-      instructor: "Dr. Rosalind Franklin",
-      schedule: "Mon, Wed, Fri 9:00 AM - 10:30 AM",
-      location: "Life Sciences Building, Room 105",
-      availableSeats: 5,
-      totalSeats: 30,
-      description:
-        "Introduction to the principles of biology, including cell structure and function.",
-      year: 1,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 6,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 1,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 7,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 2,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 8,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 2,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 9,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 2,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 10,
-      code: "CS101",
-      title: "Introduction to Computer Science",
-      department: "Computer Science",
-      credits: 3,
-      instructor: "Dr. Alan Turing",
-      schedule: "Mon, Wed, Fri 10:00 AM - 11:30 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 15,
-      totalSeats: 30,
-      description:
-        "An introductory course to the fundamental principles of computing and programming.",
-      year: 2,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 11,
-      code: "CS 112",
-      title: "Fundamentals of programming - C++",
-      department: "Computer Science",
-      credits: 4,
-      instructor: "Dr. Katherine Johnson",
-      schedule: "Tue, Thu 9:00 AM - 11:00 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 8,
-      totalSeats: 25,
-      description:
-        "Introduction to differential and integral calculus of functions of one variable.",
-      year: 2,
-      semester: 2,
-      prerequisites: "MATH101",
-    },
-    {
-      id: 12,
-      code: "GE-US",
-      title: "Understanding the Self",
-      department: "English",
-      credits: 3,
-      instructor: "Prof. Jane Austen",
-      schedule: "Mon, Wed 1:00 PM - 2:30 PM",
-      location: "Humanities Building, Room 210",
-      availableSeats: 20,
-      totalSeats: 30,
-      description:
-        "Development of writing skills through the study and practice of academic writing.",
-      year: 2,
-      semester: 2,
-      prerequisites: "ENG101",
-    },
-    {
-      id: 13,
-      code: "CS101",
-      title: "Introduction to Computer Science",
-      department: "Computer Science",
-      credits: 3,
-      instructor: "Dr. Alan Turing",
-      schedule: "Mon, Wed, Fri 10:00 AM - 11:30 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 15,
-      totalSeats: 30,
-      description:
-        "An introductory course to the fundamental principles of computing and programming.",
-      year: 3,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 14,
-      code: "CS 112",
-      title: "Fundamentals of programming - C++",
-      department: "Computer Science",
-      credits: 4,
-      instructor: "Dr. Katherine Johnson",
-      schedule: "Tue, Thu 9:00 AM - 11:00 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 8,
-      totalSeats: 25,
-      description:
-        "Introduction to differential and integral calculus of functions of one variable.",
-      year: 3,
-      semester: 1,
-      prerequisites: "MATH101",
-    },
-    {
-      id: 15,
-      code: "GE-US",
-      title: "Understanding the Self",
-      department: "English",
-      credits: 3,
-      instructor: "Prof. Jane Austen",
-      schedule: "Mon, Wed 1:00 PM - 2:30 PM",
-      location: "Humanities Building, Room 210",
-      availableSeats: 20,
-      totalSeats: 30,
-      description:
-        "Development of writing skills through the study and practice of academic writing.",
-      year: 3,
-      semester: 1,
-      prerequisites: "ENG101",
-    },
-    {
-      id: 16,
-      code: "GE-MMW",
-      title: "Mathematics in the Modern World",
-      department: "Mathematics",
-      credits: 4,
-      instructor: "Dr. Richard Feynman",
-      schedule: "Tue, Thu 1:00 PM - 3:00 PM",
-      location: "Science Building, Room 201",
-      availableSeats: 12,
-      totalSeats: 24,
-      description:
-        "An introduction to classical mechanics, thermodynamics, and wave phenomena.",
-      year: 3,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 17,
-      code: "BIO110",
-      title: "General Biology",
-      department: "Biology",
-      credits: 4,
-      instructor: "Dr. Rosalind Franklin",
-      schedule: "Mon, Wed, Fri 9:00 AM - 10:30 AM",
-      location: "Life Sciences Building, Room 105",
-      availableSeats: 5,
-      totalSeats: 30,
-      description:
-        "Introduction to the principles of biology, including cell structure and function.",
-      year: 3,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 18,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 3,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 30,
-      code: "CS 331",
-      title: "Practicum (162 hours)",
-      department: "OJT",
-      credits: 3,
-      instructor: "N/A",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Company locaton",
-      availableSeats: 18,
-      totalSeats: 35,
-      description: "Student Summer internship",
-      year: 3,
-      semester: "Summer",
-      prerequisites: "None",
-    },
-    {
-      id: 19,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 4,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 20,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 4,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 21,
-      code: "HIST101",
-      title: "World History",
-      department: "History",
-      credits: 3,
-      instructor: "Prof. Howard Zinn",
-      schedule: "Tue, Thu 11:00 AM - 12:30 PM",
-      location: "Humanities Building, Room 310",
-      availableSeats: 18,
-      totalSeats: 35,
-      description:
-        "Survey of world history from ancient civilizations to the modern era.",
-      year: 4,
-      semester: 1,
-      prerequisites: "None",
-    },
-    {
-      id: 22,
-      code: "CS101",
-      title: "Introduction to Computer Science",
-      department: "Computer Science",
-      credits: 3,
-      instructor: "Dr. Alan Turing",
-      schedule: "Mon, Wed, Fri 10:00 AM - 11:30 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 15,
-      totalSeats: 30,
-      description:
-        "An introductory course to the fundamental principles of computing and programming.",
-      year: 4,
-      semester: 2,
-      prerequisites: "None",
-    },
-    {
-      id: 23,
-      code: "CS 112",
-      title: "Fundamentals of programming - C++",
-      department: "Computer Science",
-      credits: 4,
-      instructor: "Dr. Katherine Johnson",
-      schedule: "Tue, Thu 9:00 AM - 11:00 AM",
-      location: "Science Building, Room 301",
-      availableSeats: 8,
-      totalSeats: 25,
-      description:
-        "Introduction to differential and integral calculus of functions of one variable.",
-      year: 4,
-      semester: 2,
-      prerequisites: "MATH101",
-    },
-    {
-      id: 24,
-      code: "GE-US",
-      title: "Understanding the Self",
-      department: "English",
-      credits: 3,
-      instructor: "Prof. Jane Austen",
-      schedule: "Mon, Wed 1:00 PM - 2:30 PM",
-      location: "Humanities Building, Room 210",
-      availableSeats: 20,
-      totalSeats: 30,
-      description:
-        "Development of writing skills through the study and practice of academic writing.",
-      year: 4,
-      semester: 2,
-      prerequisites: "ENG101",
-    },
-  ];
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch("/api/courses");
+      const data = await response.json();
+      setCourses(data);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch courses. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter courses based on search term, year, and semester
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
+      `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const matchesYear =
-      selectedYear === "all" || course.year.toString() === selectedYear;
+    const [year] = course.semester.split(" - ");
+    const matchesYear = selectedYear === "all" || year === selectedYear;
     const matchesSemester =
-      selectedSemester === "all" ||
-      course.semester.toString() === selectedSemester;
+      selectedSemester === "all" || course.semester.includes(selectedSemester);
 
     return matchesSearch && matchesYear && matchesSemester;
   });
@@ -480,43 +95,110 @@ export default function AvailableCourses() {
   // Get unique years and semesters for filter dropdowns
   const years = [
     "all",
-    ...new Set(courses.map((course) => course.year.toString())),
+    ...new Set(courses.map((course) => course.semester.split(" - ")[0])),
   ];
-  const semesters = [
-    "all",
-    ...new Set(courses.map((course) => course.semester.toString())),
-  ];
+  const semesters = ["all", "First Semester", "Second Semester", "Summer"];
 
-  // Group courses by year and semester
+  // Group courses by semester
   const groupedCourses = filteredCourses.reduce((acc, course) => {
-    const key = `${course.year}-${course.semester}`;
+    const key = course.semester;
     if (!acc[key]) {
       acc[key] = {
-        year: course.year,
-        semester: course.semester.toString(),
-        title: `Year ${course.year} - Semester ${course.semester}`,
+        semester: course.semester,
+        title: course.semester,
         courses: [],
       };
     }
     acc[key].courses.push(course);
     return acc;
-  }, {} as Record<string, { year: number; semester: string; title: string; courses: typeof courses }>);
+  }, {} as Record<string, { semester: string; title: string; courses: Course[] }>);
 
   // Sort by year and semester
   const sortedGroups = Object.values(groupedCourses).sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year;
-    return Number(a.semester) - Number(b.semester);
+    const yearOrder = {
+      "Freshman Year": 1,
+      "Sophomore Year": 2,
+      "Junior Year": 3,
+      "Senior Year": 4,
+    };
+    const semesterOrder = {
+      "First Semester": 1,
+      "Second Semester": 2,
+      Summer: 3,
+    };
+
+    const [aYear, aSem] = a.semester.split(" - ");
+    const [bYear, bSem] = b.semester.split(" - ");
+
+    if (aYear !== bYear) {
+      return (
+        yearOrder[aYear as keyof typeof yearOrder] -
+        yearOrder[bYear as keyof typeof yearOrder]
+      );
+    }
+    return (
+      semesterOrder[aSem as keyof typeof semesterOrder] -
+      semesterOrder[bSem as keyof typeof semesterOrder]
+    );
   });
 
-  const handleEnrollment = (course: any) => {
-    console.log(`Enrolling in course: ${course.code} - ${course.title}`);
-    setEnrollmentSuccess(true);
-    setTimeout(() => {
-      setEnrollmentSuccess(false);
-    }, 3000);
+  const handleEnrollment = async (courseId: string) => {
+    try {
+      const response = await fetch("/api/enrollments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          courseId,
+          // In a real app, this would come from the authenticated user
+          studentId: "demo-student-id",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to enroll");
+      }
+
+      toast({
+        title: "Success",
+        description: "Enrollment request submitted successfully",
+      });
+      setEnrollmentSuccess(true);
+      setTimeout(() => setEnrollmentSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error enrolling:", error);
+      toast({
+        title: "Error",
+        description: "Failed to enroll in course. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleCourseSelection = (groupKey: string, courseId: number) => {
+  const handleBulkEnrollment = async (groupKey: string) => {
+    const coursesToEnroll = selectedCourses[groupKey] || [];
+
+    try {
+      await Promise.all(
+        coursesToEnroll.map((courseId) => handleEnrollment(courseId))
+      );
+
+      setSelectedCourses((prev) => ({
+        ...prev,
+        [groupKey]: [],
+      }));
+    } catch (error) {
+      console.error("Error in bulk enrollment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to enroll in some courses. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleCourseSelection = (groupKey: string, courseId: string) => {
     setSelectedCourses((prev) => {
       const currentSelections = prev[groupKey] || [];
       if (currentSelections.includes(courseId)) {
@@ -533,10 +215,9 @@ export default function AvailableCourses() {
     });
   };
 
-  const toggleSelectAll = (groupKey: string, courseIds: number[]) => {
+  const toggleSelectAll = (groupKey: string, courseIds: string[]) => {
     setSelectedCourses((prev) => {
       const currentSelections = prev[groupKey] || [];
-      // If all are selected, unselect all. Otherwise, select all.
       if (currentSelections.length === courseIds.length) {
         return {
           ...prev,
@@ -551,29 +232,13 @@ export default function AvailableCourses() {
     });
   };
 
-  const handleBulkEnrollment = (groupKey: string) => {
-    const coursesToEnroll = (selectedCourses[groupKey] || [])
-      .map((id) =>
-        groupedCourses[groupKey].courses.find((course) => course.id === id)
-      )
-      .filter(Boolean);
-
-    console.log(
-      `Enrolling in ${coursesToEnroll.length} courses:`,
-      coursesToEnroll
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading courses...</div>
+      </div>
     );
-    setEnrollmentSuccess(true);
-
-    // Reset selection for this group after enrollment
-    setSelectedCourses((prev) => ({
-      ...prev,
-      [groupKey]: [],
-    }));
-
-    setTimeout(() => {
-      setEnrollmentSuccess(false);
-    }, 3000);
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -591,27 +256,25 @@ export default function AvailableCourses() {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Year" />
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select Year Level" />
             </SelectTrigger>
             <SelectContent>
               {years.map((year) => (
                 <SelectItem key={year} value={year}>
-                  {year === "all" ? "All Years" : `Year ${year}`}
+                  {year === "all" ? "All Years" : year}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Semester" />
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select Semester" />
             </SelectTrigger>
             <SelectContent>
               {semesters.map((semester) => (
                 <SelectItem key={semester} value={semester}>
-                  {semester === "all"
-                    ? "All Semesters"
-                    : `Semester ${semester}`}
+                  {semester === "all" ? "All Semesters" : semester}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -620,10 +283,7 @@ export default function AvailableCourses() {
       </div>
 
       {enrollmentSuccess && (
-        <div
-          className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
-          role="alert"
-        >
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
           <strong className="font-bold">Success! </strong>
           <span className="block sm:inline">
             Your enrollment request has been submitted.
@@ -633,11 +293,9 @@ export default function AvailableCourses() {
 
       <div className="space-y-8">
         {sortedGroups.map((group) => {
-          const groupKey = `${group.year}-${group.semester}`;
+          const groupKey = group.semester;
           const currentPage = paginationState[groupKey] || 1;
           const totalPages = Math.ceil(group.courses.length / coursesPerPage);
-
-          // Get paginated courses for this group
           const startIndex = (currentPage - 1) * coursesPerPage;
           const paginatedCourses = group.courses.slice(
             startIndex,
@@ -645,16 +303,14 @@ export default function AvailableCourses() {
           );
 
           return (
-            <div key={groupKey} className="rounded-md border">
-              <div className="bg-blue-50 p-4 border-b">
-                <h3 className="text-lg font-semibold text-blue-800">
-                  {group.title}
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
+            <div key={groupKey} className="rounded-md">
+              <h3 className="text-lg pl-14 font-semibold mb-1">
+                {group.title}
+              </h3>
+              <div className="overflow-x-auto rounded border">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-gray-50">
+                    <tr className="border-b bg-blue-50 text-blue-800">
                       <th className="text-left font-medium p-3 w-10">
                         <div className="flex items-center">
                           <input
@@ -662,7 +318,8 @@ export default function AvailableCourses() {
                             className="rounded cursor-pointer border-gray-300"
                             checked={
                               (selectedCourses[groupKey] || []).length ===
-                                group.courses.length && group.courses.length > 0
+                                paginatedCourses.length &&
+                              paginatedCourses.length > 0
                             }
                             onChange={() =>
                               toggleSelectAll(
@@ -675,12 +332,10 @@ export default function AvailableCourses() {
                       </th>
                       <th className="text-left font-medium p-3">Course Code</th>
                       <th className="text-left font-medium p-3">
-                        Course Description
+                        Course Details
                       </th>
                       <th className="text-left font-medium p-3">Units</th>
-                      <th className="text-left font-medium p-3">
-                        Prerequisites
-                      </th>
+                      <th className="text-left font-medium p-3">Description</th>
                       <th className="text-right font-medium p-3">Actions</th>
                     </tr>
                   </thead>
@@ -702,14 +357,17 @@ export default function AvailableCourses() {
                         <td className="p-3 font-medium">{course.code}</td>
                         <td className="p-3">
                           <div>
-                            <div className="font-medium">{course.title}</div>
+                            <div className="font-medium">{course.name}</div>
                             <div className="text-xs text-gray-500 mt-1">
-                              {course.instructor} • {course.schedule}
+                              {course.faculty.profile.firstName}{" "}
+                              {course.faculty.profile.lastName}
                             </div>
                           </div>
                         </td>
                         <td className="p-3 text-center">{course.credits}</td>
-                        <td className="p-3">{course.prerequisites}</td>
+                        <td className="p-3 max-w-xs truncate">
+                          {course.description}
+                        </td>
                         <td className="p-3 text-right">
                           <Dialog>
                             <DialogTrigger asChild>
@@ -720,7 +378,7 @@ export default function AvailableCourses() {
                             <DialogContent className="max-w-md">
                               <DialogHeader>
                                 <DialogTitle>
-                                  {course.code}: {course.title}
+                                  {course.code}: {course.name}
                                 </DialogTitle>
                                 <DialogDescription>
                                   Course details and enrollment information
@@ -735,12 +393,6 @@ export default function AvailableCourses() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <h4 className="font-medium">Department</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {course.department}
-                                    </p>
-                                  </div>
-                                  <div>
                                     <h4 className="font-medium">Credits</h4>
                                     <p className="text-sm text-muted-foreground mt-1">
                                       {course.credits}
@@ -749,30 +401,22 @@ export default function AvailableCourses() {
                                   <div>
                                     <h4 className="font-medium">Instructor</h4>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                      {course.instructor}
+                                      {course.faculty.profile.firstName}{" "}
+                                      {course.faculty.profile.lastName}
                                     </p>
                                   </div>
                                   <div>
-                                    <h4 className="font-medium">Location</h4>
+                                    <h4 className="font-medium">Status</h4>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                      {course.location}
+                                      {course.status}
                                     </p>
                                   </div>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">Schedule</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {course.schedule}
-                                  </p>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">
-                                    Available Seats
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {course.availableSeats} out of{" "}
-                                    {course.totalSeats}
-                                  </p>
+                                  <div>
+                                    <h4 className="font-medium">Capacity</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {course.capacity}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </DialogContent>
@@ -784,7 +428,6 @@ export default function AvailableCourses() {
                 </table>
               </div>
 
-              {/* Confirm Enrollment Button */}
               {(selectedCourses[groupKey] || []).length > 0 && (
                 <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
                   <div>
@@ -802,7 +445,6 @@ export default function AvailableCourses() {
                 </div>
               )}
 
-              {/* Pagination controls */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center p-4 border-t">
                   <Button

@@ -35,7 +35,7 @@ async function main() {
       credits: 3,
       capacity: 30,
       facultyId: faculty[0].id, // Alan Turing
-      semester: "Fall 2024",
+      semester: "Freshman Year - First Semester",
     }),
     createCourse({
       code: "CS112",
@@ -45,7 +45,7 @@ async function main() {
       credits: 4,
       capacity: 25,
       facultyId: faculty[1].id, // Katherine Johnson
-      semester: "Fall 2024",
+      semester: "Freshman Year - First Semester",
     }),
     createCourse({
       code: "GE-US",
@@ -55,7 +55,7 @@ async function main() {
       credits: 3,
       capacity: 30,
       facultyId: faculty[2].id, // Jane Austen
-      semester: "Fall 2024",
+      semester: "Freshman Year - First Semester",
     }),
     createCourse({
       code: "GE-MMW",
@@ -65,7 +65,7 @@ async function main() {
       credits: 4,
       capacity: 24,
       facultyId: faculty[3].id, // Richard Feynman
-      semester: "Spring 2025",
+      semester: "Freshman Year - Second Semester",
     }),
     createCourse({
       code: "BIO110",
@@ -75,7 +75,7 @@ async function main() {
       credits: 4,
       capacity: 30,
       facultyId: faculty[4].id, // Rosalind Franklin
-      semester: "Spring 2025",
+      semester: "Freshman Year - Second Semester",
     }),
     createCourse({
       code: "HIST101",
@@ -85,7 +85,7 @@ async function main() {
       credits: 3,
       capacity: 35,
       facultyId: faculty[5].id, // Howard Zinn
-      semester: "Spring 2025",
+      semester: "Sophomore Year - First Semester",
     }),
   ]);
 
