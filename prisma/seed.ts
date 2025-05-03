@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -645,6 +646,28 @@ async function main() {
   // Create demo admin
   await createUser("admin@university.edu", "Admin User", Role.ADMIN);
 
+  // Create test admin account
+  const testAdmin = await createUser(
+    "test.admin@university.edu",
+    "Test Admin",
+    Role.ADMIN
+  );
+  console.log("Test Admin Account Created:");
+  console.log("- Email: test.admin@university.edu");
+  console.log("- Password: password123");
+  console.log("- Role: ADMIN");
+
+  // Create test faculty account
+  const testFaculty = await createUser(
+    "test.faculty@university.edu",
+    "Test Faculty",
+    Role.FACULTY
+  );
+  console.log("Test Faculty Account Created:");
+  console.log("- Email: test.faculty@university.edu");
+  console.log("- Password: password123");
+  console.log("- Role: FACULTY");
+
   // Create demo student
   await createUser("john.student@university.edu", "John Student", Role.STUDENT);
 
@@ -654,10 +677,13 @@ async function main() {
 async function createUser(email: string, name: string, role: Role) {
   const [firstName, lastName] = name.split(" ");
 
+  // Hash the password using bcrypt
+  const hashedPassword = await bcrypt.hash("password123", 10);
+
   return prisma.user.create({
     data: {
       email,
-      password: "password123", // In a real app, this would be hashed
+      password: hashedPassword,
       role,
       profile: {
         create: {
@@ -666,6 +692,12 @@ async function createUser(email: string, name: string, role: Role) {
           dateOfBirth: new Date("1990-01-01"), // Mock date
           phone: "+1234567890",
           address: "123 University Street",
+          // Add studentId for student accounts
+          ...(role === Role.STUDENT && {
+            studentId: `S${Math.floor(100000 + Math.random() * 900000)}`, // Generate random student ID
+            schoolYear: 1,
+            isVerified: true,
+          }),
         },
       },
     },
