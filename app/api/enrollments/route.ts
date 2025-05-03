@@ -9,7 +9,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { courseId } = await request.json();
+    const body = await request.json();
+    const courseIds = Array.isArray(body.courseIds)
+      ? body.courseIds
+      : body.courseId
+      ? [body.courseId]
+      : [];
+
+    if (courseIds.length === 0) {
+      return NextResponse.json(
+        { error: "No course IDs provided" },
+        { status: 400 }
+      );
+    }
 
     // Get user's profile with verification status
     const user = await prisma.user.findUnique({
@@ -55,72 +67,130 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get course with prerequisites
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
+    // Get all courses with prerequisites
+    const courses = await prisma.course.findMany({
+      where: {
+        id: {
+          in: courseIds,
+        },
+      },
       include: {
         prerequisites: true,
       },
     });
 
-    if (!course) {
-      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    if (courses.length === 0) {
+      return NextResponse.json({ error: "No courses found" }, { status: 404 });
     }
 
-    // Check prerequisites
-    if (course.prerequisites.length > 0) {
-      const completedCourseIds = user.enrollments
-        .filter((enrollment) => enrollment.status === "COMPLETED")
-        .map((enrollment) => enrollment.courseId);
-
-      const missingPrerequisites = course.prerequisites.filter(
-        (prerequisite) => !completedCourseIds.includes(prerequisite.id)
+    // Check for missing courses
+    if (courses.length !== courseIds.length) {
+      const foundCourseIds = courses.map((course) => course.id);
+      const missingCourseIds = courseIds.filter(
+        (id) => !foundCourseIds.includes(id)
       );
 
-      if (missingPrerequisites.length > 0) {
-        const prerequisiteCodes = missingPrerequisites
-          .map((course) => course.code)
-          .join(", ");
-        return NextResponse.json(
-          {
-            error: `Missing prerequisites: ${prerequisiteCodes}. You must complete these courses first.`,
-          },
-          { status: 403 }
-        );
-      }
+      return NextResponse.json(
+        {
+          error: `Some courses were not found: ${missingCourseIds.join(", ")}`,
+        },
+        { status: 404 }
+      );
     }
 
-    // Check if enrollment already exists
-    const existingEnrollment = await prisma.enrollment.findUnique({
+    // Get completed course IDs for prerequisite checking
+    const completedCourseIds = user.enrollments
+      .filter((enrollment) => enrollment.status === "COMPLETED")
+      .map((enrollment) => enrollment.courseId);
+
+    // Get existing enrollments to avoid duplicates
+    const existingEnrollments = await prisma.enrollment.findMany({
       where: {
-        studentId_courseId: {
-          studentId: user.id,
-          courseId,
+        studentId: user.id,
+        courseId: {
+          in: courseIds,
         },
       },
     });
 
-    if (existingEnrollment) {
-      return NextResponse.json(
-        { error: "Already enrolled in this course" },
-        { status: 400 }
-      );
+    const existingCourseIds = existingEnrollments.map(
+      (enrollment) => enrollment.courseId
+    );
+
+    // Process each course for enrollment
+    const results = [];
+    const errors = [];
+
+    for (const course of courses) {
+      // Skip if already enrolled
+      if (existingCourseIds.includes(course.id)) {
+        errors.push({
+          courseId: course.id,
+          code: course.code,
+          error: "Already enrolled in this course",
+        });
+        continue;
+      }
+
+      // Check prerequisites
+      if (course.prerequisites.length > 0) {
+        const missingPrerequisites = course.prerequisites.filter(
+          (prerequisite) => !completedCourseIds.includes(prerequisite.id)
+        );
+
+        if (missingPrerequisites.length > 0) {
+          const prerequisiteCodes = missingPrerequisites
+            .map((prereq) => prereq.code)
+            .join(", ");
+
+          errors.push({
+            courseId: course.id,
+            code: course.code,
+            error: `Missing prerequisites: ${prerequisiteCodes}`,
+          });
+          continue;
+        }
+      }
+
+      // Create enrollment
+      try {
+        const enrollment = await prisma.enrollment.create({
+          data: {
+            studentId: user.id,
+            courseId: course.id,
+            status: "PENDING",
+          },
+          include: {
+            course: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
+          },
+        });
+
+        results.push(enrollment);
+      } catch (error) {
+        console.error(`Error enrolling in course ${course.id}:`, error);
+        errors.push({
+          courseId: course.id,
+          code: course.code,
+          error: "Failed to create enrollment",
+        });
+      }
     }
 
-    // Create new enrollment
-    const enrollment = await prisma.enrollment.create({
-      data: {
-        studentId: user.id,
-        courseId,
-        status: "PENDING",
-      },
+    return NextResponse.json({
+      success: results.length > 0,
+      enrollments: results,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Successfully enrolled in ${results.length} out of ${courseIds.length} courses.`,
     });
-
-    return NextResponse.json(enrollment);
   } catch (error) {
-    console.error("Error creating enrollment:", error);
+    console.error("Error creating enrollments:", error);
     return NextResponse.json(
-      { error: "Failed to create enrollment" },
+      { error: "Failed to create enrollments" },
       { status: 500 }
     );
   }
