@@ -20,6 +20,15 @@ import {
 } from "@/components/ui/dialog";
 import { Search, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 interface Course {
   id: string;
@@ -29,6 +38,7 @@ interface Course {
   credits: number;
   capacity: number;
   semester: string;
+  year: number;
   status: "OPEN" | "CLOSED" | "CANCELLED";
   faculty: {
     profile: {
@@ -36,6 +46,11 @@ interface Course {
       lastName: string;
     };
   };
+  prerequisites: {
+    id: string;
+    code: string;
+    name: string;
+  }[];
 }
 
 export default function AvailableCourses() {
@@ -43,12 +58,8 @@ export default function AvailableCourses() {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [enrollmentSuccess, setEnrollmentSuccess] = useState(false);
-  const [paginationState, setPaginationState] = useState<
-    Record<string, number>
-  >({});
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const coursesPerPage = 3;
   const [selectedCourses, setSelectedCourses] = useState<
     Record<string, string[]>
   >({});
@@ -61,15 +72,26 @@ export default function AvailableCourses() {
   const fetchCourses = async () => {
     try {
       const response = await fetch("/api/courses");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch courses");
+      }
       const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid courses data received");
+      }
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch courses. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch courses. Please try again.",
         variant: "destructive",
       });
+      setCourses([]); // Ensure courses is always an array
     } finally {
       setLoading(false);
     }
@@ -84,61 +106,47 @@ export default function AvailableCourses() {
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
-    const [year] = course.semester.split(" - ");
-    const matchesYear = selectedYear === "all" || year === selectedYear;
+    const matchesYear =
+      selectedYear === "all" || course.year.toString() === selectedYear;
     const matchesSemester =
-      selectedSemester === "all" || course.semester.includes(selectedSemester);
+      selectedSemester === "all" || course.semester === selectedSemester;
 
     return matchesSearch && matchesYear && matchesSemester;
   });
 
   // Get unique years and semesters for filter dropdowns
-  const years = [
-    "all",
-    ...new Set(courses.map((course) => course.semester.split(" - ")[0])),
-  ];
-  const semesters = ["all", "First Semester", "Second Semester", "Summer"];
+  const years = ["all", "1", "2", "3", "4"];
+  const semesters = ["all", "FIRST", "SECOND", "SUMMER"];
 
-  // Group courses by semester
+  // Group courses by year and semester
   const groupedCourses = filteredCourses.reduce((acc, course) => {
-    const key = course.semester;
+    const year = course.year ?? 0;
+    const key = `Year ${year} - ${course.semester}`;
     if (!acc[key]) {
       acc[key] = {
+        year: year,
         semester: course.semester,
-        title: course.semester,
+        title: key,
         courses: [],
       };
     }
     acc[key].courses.push(course);
     return acc;
-  }, {} as Record<string, { semester: string; title: string; courses: Course[] }>);
+  }, {} as Record<string, { year: number; semester: string; title: string; courses: Course[] }>);
 
   // Sort by year and semester
   const sortedGroups = Object.values(groupedCourses).sort((a, b) => {
-    const yearOrder = {
-      "Freshman Year": 1,
-      "Sophomore Year": 2,
-      "Junior Year": 3,
-      "Senior Year": 4,
-    };
-    const semesterOrder = {
-      "First Semester": 1,
-      "Second Semester": 2,
-      Summer: 3,
-    };
-
-    const [aYear, aSem] = a.semester.split(" - ");
-    const [bYear, bSem] = b.semester.split(" - ");
-
-    if (aYear !== bYear) {
-      return (
-        yearOrder[aYear as keyof typeof yearOrder] -
-        yearOrder[bYear as keyof typeof yearOrder]
-      );
+    if (a.year !== b.year) {
+      return a.year - b.year;
     }
+    const semesterOrder = {
+      FIRST: 1,
+      SECOND: 2,
+      SUMMER: 3,
+    };
     return (
-      semesterOrder[aSem as keyof typeof semesterOrder] -
-      semesterOrder[bSem as keyof typeof semesterOrder]
+      semesterOrder[a.semester as keyof typeof semesterOrder] -
+      semesterOrder[b.semester as keyof typeof semesterOrder]
     );
   });
 
@@ -149,15 +157,12 @@ export default function AvailableCourses() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          courseId,
-          // In a real app, this would come from the authenticated user
-          studentId: "demo-student-id",
-        }),
+        body: JSON.stringify({ courseId }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to enroll");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to enroll");
       }
 
       toast({
@@ -170,7 +175,10 @@ export default function AvailableCourses() {
       console.error("Error enrolling:", error);
       toast({
         title: "Error",
-        description: "Failed to enroll in course. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to enroll in course. Please try again.",
         variant: "destructive",
       });
     }
@@ -200,295 +208,129 @@ export default function AvailableCourses() {
 
   const toggleCourseSelection = (groupKey: string, courseId: string) => {
     setSelectedCourses((prev) => {
-      const currentSelections = prev[groupKey] || [];
-      if (currentSelections.includes(courseId)) {
-        return {
-          ...prev,
-          [groupKey]: currentSelections.filter((id) => id !== courseId),
-        };
-      } else {
-        return {
-          ...prev,
-          [groupKey]: [...currentSelections, courseId],
-        };
-      }
+      const currentSelected = prev[groupKey] || [];
+      const newSelected = currentSelected.includes(courseId)
+        ? currentSelected.filter((id) => id !== courseId)
+        : [...currentSelected, courseId];
+
+      return {
+        ...prev,
+        [groupKey]: newSelected,
+      };
     });
   };
 
   const toggleSelectAll = (groupKey: string, courseIds: string[]) => {
     setSelectedCourses((prev) => {
-      const currentSelections = prev[groupKey] || [];
-      if (currentSelections.length === courseIds.length) {
-        return {
-          ...prev,
-          [groupKey]: [],
-        };
-      } else {
-        return {
-          ...prev,
-          [groupKey]: [...courseIds],
-        };
-      }
+      const currentSelected = prev[groupKey] || [];
+      const allSelected = courseIds.every((id) => currentSelected.includes(id));
+
+      return {
+        ...prev,
+        [groupKey]: allSelected ? [] : courseIds,
+      };
     });
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading courses...</div>
-      </div>
-    );
+    return <div>Loading courses...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search courses by title, code, or instructor..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Year Level" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year === "all" ? "All Years" : year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Semester" />
-            </SelectTrigger>
-            <SelectContent>
-              {semesters.map((semester) => (
-                <SelectItem key={semester} value={semester}>
-                  {semester === "all" ? "All Semesters" : semester}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Available Courses</h1>
+
+      <div className="flex gap-4 mb-6">
+        <Input
+          type="text"
+          placeholder="Search courses..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select year" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((year) => (
+              <SelectItem key={year} value={year}>
+                {year === "all" ? "All Years" : `Year ${year}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select semester" />
+          </SelectTrigger>
+          <SelectContent>
+            {semesters.map((semester) => (
+              <SelectItem key={semester} value={semester}>
+                {semester === "all" ? "All Semesters" : semester}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {enrollmentSuccess && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-          <strong className="font-bold">Success! </strong>
-          <span className="block sm:inline">
-            Your enrollment request has been submitted.
-          </span>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      )}
-
-      <div className="space-y-8">
-        {sortedGroups.map((group) => {
-          const groupKey = group.semester;
-          const currentPage = paginationState[groupKey] || 1;
-          const totalPages = Math.ceil(group.courses.length / coursesPerPage);
-          const startIndex = (currentPage - 1) * coursesPerPage;
-          const paginatedCourses = group.courses.slice(
-            startIndex,
-            startIndex + coursesPerPage
-          );
-
-          return (
-            <div key={groupKey} className="rounded-md">
-              <h3 className="text-lg pl-14 font-semibold mb-1">
-                {group.title}
-              </h3>
-              <div className="overflow-x-auto rounded border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-blue-50 text-blue-800">
-                      <th className="text-left font-medium p-3 w-10">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="rounded cursor-pointer border-gray-300"
-                            checked={
-                              (selectedCourses[groupKey] || []).length ===
-                                paginatedCourses.length &&
-                              paginatedCourses.length > 0
-                            }
-                            onChange={() =>
-                              toggleSelectAll(
-                                groupKey,
-                                paginatedCourses.map((c) => c.id)
-                              )
-                            }
-                          />
+      ) : (
+        <div className="space-y-6">
+          {sortedGroups.map((group) => (
+            <div key={group.title}>
+              <h2 className="text-xl font-semibold mb-4">{group.title}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {group.courses.map((course) => (
+                  <Card key={course.id} className="flex flex-col">
+                    <CardHeader>
+                      <CardTitle className="flex justify-between items-start">
+                        <div>
+                          <span className="text-lg">{course.name}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            ({course.code})
+                          </span>
                         </div>
-                      </th>
-                      <th className="text-left font-medium p-3">Course Code</th>
-                      <th className="text-left font-medium p-3">
-                        Course Details
-                      </th>
-                      <th className="text-left font-medium p-3">Units</th>
-                      <th className="text-left font-medium p-3">Description</th>
-                      <th className="text-right font-medium p-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedCourses.map((course) => (
-                      <tr key={course.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <input
-                            type="checkbox"
-                            className="rounded cursor-pointer border-gray-300"
-                            checked={(selectedCourses[groupKey] || []).includes(
-                              course.id
-                            )}
-                            onChange={() =>
-                              toggleCourseSelection(groupKey, course.id)
-                            }
-                          />
-                        </td>
-                        <td className="p-3 font-medium">{course.code}</td>
-                        <td className="p-3">
-                          <div>
-                            <div className="font-medium">{course.name}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {course.faculty.profile.firstName}{" "}
-                              {course.faculty.profile.lastName}
-                            </div>
+                        <Badge>{course.credits} credits</Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        <p className="line-clamp-2">{course.description}</p>
+                        <p className="mt-2">
+                          Instructor: {course.faculty.profile.firstName}{" "}
+                          {course.faculty.profile.lastName}
+                        </p>
+                        {course.prerequisites.length > 0 && (
+                          <div className="mt-2">
+                            <p className="font-medium">Prerequisites:</p>
+                            <ul className="list-disc list-inside">
+                              {course.prerequisites.map((prerequisite) => (
+                                <li key={prerequisite.id}>
+                                  {prerequisite.code} - {prerequisite.name}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                        </td>
-                        <td className="p-3 text-center">{course.credits}</td>
-                        <td className="p-3 max-w-xs truncate">
-                          {course.description}
-                        </td>
-                        <td className="p-3 text-right">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                Details
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>
-                                  {course.code}: {course.name}
-                                </DialogTitle>
-                                <DialogDescription>
-                                  Course details and enrollment information
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div>
-                                  <h4 className="font-medium">Description</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {course.description}
-                                  </p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <h4 className="font-medium">Credits</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {course.credits}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-medium">Instructor</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {course.faculty.profile.firstName}{" "}
-                                      {course.faculty.profile.lastName}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-medium">Status</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {course.status}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-medium">Capacity</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {course.capacity}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="mt-auto">
+                      <Button
+                        className="w-full"
+                        onClick={() => handleEnrollment(course.id)}
+                      >
+                        Enroll
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
               </div>
-
-              {(selectedCourses[groupKey] || []).length > 0 && (
-                <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
-                  <div>
-                    <span className="text-sm font-medium">
-                      {(selectedCourses[groupKey] || []).length} course(s)
-                      selected
-                    </span>
-                  </div>
-                  <Button
-                    onClick={() => handleBulkEnrollment(groupKey)}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Confirm Enrollment
-                  </Button>
-                </div>
-              )}
-
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center p-4 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setPaginationState({
-                        ...paginationState,
-                        [groupKey]: Math.max(1, currentPage - 1),
-                      })
-                    }
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="mx-4 text-sm">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setPaginationState({
-                        ...paginationState,
-                        [groupKey]: Math.min(totalPages, currentPage + 1),
-                      })
-                    }
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
-
-      {filteredCourses.length === 0 && (
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium">No courses found</h3>
-          <p className="text-muted-foreground mt-1">
-            Try adjusting your search or filter criteria
-          </p>
+          ))}
         </div>
       )}
     </div>

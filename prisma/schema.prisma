@@ -32,16 +32,21 @@ model User {
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  firstName   String
-  lastName    String
-  dateOfBirth DateTime
-  phone       String?
-  address     String?
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String            @id @default(cuid())
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  phone           String?
+  address         String?
+  studentId       String?           @unique // School-provided student ID
+  schoolYear      Int? // Current year level
+  isVerified      Boolean           @default(false) // Whether documents are verified
+  userId          String            @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents       Document[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  StudentDocument StudentDocument[]
 }
 
 model Program {
@@ -68,14 +73,31 @@ model Application {
 }
 
 model Document {
-  id            String      @id @default(cuid())
-  name          String
-  type          String
-  url           String
-  applicationId String
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id            String             @id @default(cuid())
+  type          DocumentType
+  fileUrl       String
+  status        VerificationStatus @default(PENDING)
+  profileId     String
+  profile       Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  Application   Application?       @relation(fields: [applicationId], references: [id])
+  applicationId String?
+
+  @@index([profileId])
+}
+
+model StudentDocument {
+  id        String             @id @default(cuid())
+  type      DocumentType
+  fileUrl   String
+  status    VerificationStatus @default(PENDING)
+  profileId String
+  profile   Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([profileId])
 }
 
 enum Role {
@@ -92,6 +114,19 @@ enum ApplicationStatus {
   WAITLISTED
 }
 
+enum DocumentType {
+  TOR
+  BIRTH_CERTIFICATE
+  GRADES
+  CLEARANCE
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 model Course {
   id          String       @id @default(cuid())
   code        String       @unique // e.g., CS101
@@ -102,10 +137,15 @@ model Course {
   facultyId   String
   faculty     User         @relation("FacultyCourses", fields: [facultyId], references: [id])
   enrollments Enrollment[]
-  semester    String // e.g., "Fall 2024"
+  semester    String // FIRST, SECOND, or SUMMER
+  year        Int // Academic year (1-4)
   status      CourseStatus @default(OPEN)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  // Prerequisites relationship
+  prerequisites   Course[] @relation("CoursePrerequisites")
+  prerequisiteFor Course[] @relation("CoursePrerequisites")
 
   @@index([facultyId])
 }

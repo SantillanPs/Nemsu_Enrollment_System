@@ -1,7 +1,20 @@
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { BookOpen, Users, UserPlus, CheckSquare, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  BookOpen,
+  Users,
+  UserPlus,
+  CheckSquare,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
 
 export default function AdminDashboard() {
   // Mock data for admin dashboard
@@ -20,7 +33,7 @@ export default function AdminDashboard() {
       program: "Business Administration",
       date: "2023-08-14",
     },
-  ]
+  ];
 
   const recentCourses = [
     {
@@ -50,14 +63,16 @@ export default function AdminDashboard() {
       enrollments: 22,
       capacity: 30,
     },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Students
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -83,7 +98,9 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Courses
+            </CardTitle>
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -96,7 +113,9 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Approvals
+            </CardTitle>
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -113,17 +132,28 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Pending Student Approvals</CardTitle>
-            <CardDescription>New student accounts awaiting approval</CardDescription>
+            <CardDescription>
+              New student accounts awaiting approval
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {pendingApprovals.map((student) => (
-                <div key={student.id} className="flex items-center justify-between border-b pb-4">
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between border-b pb-4"
+                >
                   <div>
                     <p className="font-medium">{student.name}</p>
-                    <p className="text-sm text-muted-foreground">{student.email}</p>
-                    <p className="text-sm text-muted-foreground">Program: {student.program}</p>
-                    <p className="text-sm text-muted-foreground">Applied on: {student.date}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {student.email}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Program: {student.program}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Applied on: {student.date}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -133,7 +163,10 @@ export default function AdminDashboard() {
                     >
                       Reject
                     </Button>
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
                       Approve
                     </Button>
                   </div>
@@ -141,7 +174,9 @@ export default function AdminDashboard() {
               ))}
               {pendingApprovals.length === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-muted-foreground">No pending student approvals</p>
+                  <p className="text-muted-foreground">
+                    No pending student approvals
+                  </p>
                 </div>
               )}
               <div className="text-center pt-2">
@@ -156,7 +191,9 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Enrollment Statistics</CardTitle>
-            <CardDescription>Current enrollment statistics by department</CardDescription>
+            <CardDescription>
+              Current enrollment statistics by department
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -166,7 +203,10 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium">78%</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: "78%" }}></div>
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: "78%" }}
+                  ></div>
                 </div>
               </div>
               <div>
@@ -175,7 +215,10 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium">92%</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: "92%" }}></div>
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: "92%" }}
+                  ></div>
                 </div>
               </div>
               <div>
@@ -184,7 +227,10 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium">64%</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: "64%" }}></div>
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: "64%" }}
+                  ></div>
                 </div>
               </div>
               <div>
@@ -193,7 +239,10 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium">45%</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: "45%" }}></div>
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: "45%" }}
+                  ></div>
                 </div>
               </div>
               <div>
@@ -202,7 +251,10 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium">71%</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: "71%" }}></div>
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: "71%" }}
+                  ></div>
                 </div>
               </div>
             </div>
@@ -225,7 +277,9 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left font-medium p-2 pl-0">Course Code</th>
+                  <th className="text-left font-medium p-2 pl-0">
+                    Course Code
+                  </th>
                   <th className="text-left font-medium p-2">Course Title</th>
                   <th className="text-left font-medium p-2">Department</th>
                   <th className="text-left font-medium p-2">Instructor</th>
@@ -245,7 +299,11 @@ export default function AdminDashboard() {
                       <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                         <div
                           className="bg-blue-600 h-1.5 rounded-full"
-                          style={{ width: `${(course.enrollments / course.capacity) * 100}%` }}
+                          style={{
+                            width: `${
+                              (course.enrollments / course.capacity) * 100
+                            }%`,
+                          }}
                         ></div>
                       </div>
                     </td>
@@ -285,5 +343,5 @@ export default function AdminDashboard() {
         </Link>
       </div>
     </div>
-  )
+  );
 }

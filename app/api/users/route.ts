@@ -2,6 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { ApiResponse, SafeUser } from "@/types";
 import { DEFAULT_PAGINATION_LIMIT } from "@/config/constants";
+import bcrypt from "bcryptjs";
+import { PrismaClient, User, Profile } from "@prisma/client";
+
+const prismaClient = new PrismaClient();
+
+type UserWithProfile = User & {
+  profile: Profile | null;
+};
 
 export async function GET(request: Request) {
   try {
@@ -66,7 +74,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const existingUser = await prisma.user.findUnique({
+
+    // Validate required fields
+    if (!body.email || !body.password || !body.firstName || !body.lastName) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Check if email already exists
+    const existingUser = await prismaClient.user.findUnique({
       where: { email: body.email },
     });
 
@@ -77,18 +95,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.create({
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(body.password, salt);
+
+    // Create user with profile
+    const user = await prismaClient.user.create({
       data: {
         email: body.email,
-        password: body.password, // Note: In a real app, hash this password!
+        password: hashedPassword,
         role: body.role ?? "STUDENT",
         profile: {
           create: {
             firstName: body.firstName,
             lastName: body.lastName,
-            dateOfBirth: new Date(body.dateOfBirth),
-            phone: body.phone,
-            address: body.address,
+            dateOfBirth: body.dateOfBirth
+              ? new Date(body.dateOfBirth)
+              : new Date(),
+            phone: body.phone || "",
+            address: body.address || "",
           },
         },
       },
@@ -97,6 +122,7 @@ export async function POST(request: Request) {
       },
     });
 
+    // Remove password from response
     const { password, ...safeUser } = user;
 
     return NextResponse.json(

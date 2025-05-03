@@ -133,6 +133,9 @@ exports.Prisma.ProfileScalarFieldEnum = {
   dateOfBirth: 'dateOfBirth',
   phone: 'phone',
   address: 'address',
+  studentId: 'studentId',
+  schoolYear: 'schoolYear',
+  isVerified: 'isVerified',
   userId: 'userId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -160,10 +163,21 @@ exports.Prisma.ApplicationScalarFieldEnum = {
 
 exports.Prisma.DocumentScalarFieldEnum = {
   id: 'id',
-  name: 'name',
   type: 'type',
-  url: 'url',
-  applicationId: 'applicationId',
+  fileUrl: 'fileUrl',
+  status: 'status',
+  profileId: 'profileId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  applicationId: 'applicationId'
+};
+
+exports.Prisma.StudentDocumentScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  fileUrl: 'fileUrl',
+  status: 'status',
+  profileId: 'profileId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -177,6 +191,7 @@ exports.Prisma.CourseScalarFieldEnum = {
   capacity: 'capacity',
   facultyId: 'facultyId',
   semester: 'semester',
+  year: 'year',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -215,6 +230,19 @@ exports.ApplicationStatus = exports.$Enums.ApplicationStatus = {
   WAITLISTED: 'WAITLISTED'
 };
 
+exports.DocumentType = exports.$Enums.DocumentType = {
+  TOR: 'TOR',
+  BIRTH_CERTIFICATE: 'BIRTH_CERTIFICATE',
+  GRADES: 'GRADES',
+  CLEARANCE: 'CLEARANCE'
+};
+
+exports.VerificationStatus = exports.$Enums.VerificationStatus = {
+  PENDING: 'PENDING',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED'
+};
+
 exports.CourseStatus = exports.$Enums.CourseStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
@@ -235,6 +263,7 @@ exports.Prisma.ModelName = {
   Program: 'Program',
   Application: 'Application',
   Document: 'Document',
+  StudentDocument: 'StudentDocument',
   Course: 'Course',
   Enrollment: 'Enrollment'
 };
