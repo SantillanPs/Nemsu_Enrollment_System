@@ -668,9 +668,63 @@ async function main() {
   console.log("- Password: password123");
   console.log("- Role: FACULTY");
 
-  // Create demo student
-  await createUser("john.student@university.edu", "John Student", Role.STUDENT);
+  // Create a course assigned to the test faculty
+  const testCourse = await createCourse({
+    code: "CS500",
+    name: "Advanced Web Development",
+    description:
+      "Modern web development techniques including React, Next.js, and serverless architecture",
+    credits: 3,
+    capacity: 25,
+    facultyId: testFaculty.id,
+    semester: "FIRST",
+    year: 3,
+  });
+  console.log("Test Course Created and assigned to Test Faculty:");
+  console.log(`- Course: ${testCourse.code}: ${testCourse.name}`);
 
+  // Create student accounts
+  const student1 = await createUser(
+    "john.student@university.edu",
+    "John Student",
+    Role.STUDENT
+  );
+  const student2 = await createUser(
+    "jane.student@university.edu",
+    "Jane Student",
+    Role.STUDENT
+  );
+  const student3 = await createUser(
+    "alex.student@university.edu",
+    "Alex Student",
+    Role.STUDENT
+  );
+  const student4 = await createUser(
+    "maria.student@university.edu",
+    "Maria Student",
+    Role.STUDENT
+  );
+  const student5 = await createUser(
+    "david.student@university.edu",
+    "David Student",
+    Role.STUDENT
+  );
+
+  console.log("Test Student Accounts Created:");
+  console.log("- Email: john.student@university.edu (Password: password123)");
+  console.log("- Email: jane.student@university.edu (Password: password123)");
+  console.log("- Email: alex.student@university.edu (Password: password123)");
+  console.log("- Email: maria.student@university.edu (Password: password123)");
+  console.log("- Email: david.student@university.edu (Password: password123)");
+
+  // Enroll students in the test course with different statuses
+  await createEnrollment(student1.id, testCourse.id, "APPROVED");
+  await createEnrollment(student2.id, testCourse.id, "APPROVED");
+  await createEnrollment(student3.id, testCourse.id, "PENDING");
+  await createEnrollment(student4.id, testCourse.id, "COMPLETED", "A");
+  await createEnrollment(student5.id, testCourse.id, "REJECTED");
+
+  console.log("Students enrolled in test course with various statuses");
   console.log("Database has been seeded! 🌱");
 }
 
@@ -718,6 +772,22 @@ async function createCourse(data: {
     data: {
       ...data,
       status: "OPEN",
+    },
+  });
+}
+
+async function createEnrollment(
+  studentId: string,
+  courseId: string,
+  status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN" | "COMPLETED",
+  grade?: string
+) {
+  return prisma.enrollment.create({
+    data: {
+      studentId,
+      courseId,
+      status,
+      grade,
     },
   });
 }

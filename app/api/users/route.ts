@@ -19,18 +19,27 @@ export async function GET(request: Request) {
       searchParams.get("limit") ?? String(DEFAULT_PAGINATION_LIMIT)
     );
     const search = searchParams.get("search") ?? "";
+    const role = searchParams.get("role") ?? null;
 
     const skip = (page - 1) * limit;
 
+    // Build where clause
+    const whereClause: any = {
+      OR: [
+        { email: { contains: search } },
+        { profile: { firstName: { contains: search } } },
+        { profile: { lastName: { contains: search } } },
+      ],
+    };
+
+    // Add role filter if provided
+    if (role) {
+      whereClause.role = role;
+    }
+
     const [users, total] = await Promise.all([
       prisma.user.findMany({
-        where: {
-          OR: [
-            { email: { contains: search } },
-            { profile: { firstName: { contains: search } } },
-            { profile: { lastName: { contains: search } } },
-          ],
-        },
+        where: whereClause,
         include: {
           profile: true,
         },
@@ -38,13 +47,7 @@ export async function GET(request: Request) {
         take: limit,
       }),
       prisma.user.count({
-        where: {
-          OR: [
-            { email: { contains: search } },
-            { profile: { firstName: { contains: search } } },
-            { profile: { lastName: { contains: search } } },
-          ],
-        },
+        where: whereClause,
       }),
     ]);
 
