@@ -194,7 +194,7 @@ export default function FacultyManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Faculty Management</h1>
-        <Link href="/dashboard/admin/faculty/add">
+        <Link href="/admin/faculty/add">
           <Button>
             <UserPlus className="mr-2 h-4 w-4" />
             Add New Faculty
@@ -320,12 +320,12 @@ export default function FacultyManagement() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem>
-                              <Link href={`/dashboard/admin/faculty/${faculty.id}`} className="flex w-full">
+                              <Link href={`/admin/faculty/${faculty.id}`} className="flex w-full">
                                 View Details
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Link href={`/dashboard/admin/faculty/edit/${faculty.id}`} className="flex w-full">
+                              <Link href={`/admin/faculty/edit/${faculty.id}`} className="flex w-full">
                                 Edit Faculty
                               </Link>
                             </DropdownMenuItem>
@@ -414,7 +414,7 @@ export default function FacultyManagement() {
                         </div>
                       </div>
                       <div className="mt-4 flex justify-end">
-                        <Link href={`/dashboard/admin/faculty/${faculty.id}`}>
+                        <Link href={`/admin/faculty/${faculty.id}`}>
                           <Button variant="outline" size="sm">
                             View Profile
                           </Button>
@@ -488,7 +488,7 @@ export default function FacultyManagement() {
                         </div>
                       </div>
                       <div className="mt-4 flex justify-end">
-                        <Link href={`/dashboard/admin/faculty/${faculty.id}`}>
+                        <Link href={`/admin/faculty/${faculty.id}`}>
                           <Button variant="outline" size="sm">
                             View Profile
                           </Button>
@@ -558,7 +558,7 @@ export default function FacultyManagement() {
                         </div>
                       </div>
                       <div className="mt-4 flex justify-end">
-                        <Link href={`/dashboard/admin/faculty/${faculty.id}`}>
+                        <Link href={`/admin/faculty/${faculty.id}`}>
                           <Button variant="outline" size="sm">
                             View Profile
                           </Button>

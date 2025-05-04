@@ -7,33 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  BookOpen,
-  Users,
-  UserPlus,
-  CheckSquare,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { BookOpen, Users, UserPlus, ArrowUpRight } from "lucide-react";
 
 export default function AdminDashboard() {
   // Mock data for admin dashboard
-  const pendingApprovals = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      program: "Computer Science",
-      date: "2023-08-15",
-    },
-    {
-      id: 2,
-      name: "Emily Johnson",
-      email: "emily.johnson@example.com",
-      program: "Business Administration",
-      date: "2023-08-14",
-    },
-  ];
 
   const recentCourses = [
     {
@@ -66,8 +43,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-6 px-2 sm:px-0">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="overflow-hidden border-none shadow-md">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-1"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -120,100 +97,9 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card className="overflow-hidden border-none shadow-md">
-          <div className="bg-gradient-to-br from-teal-500 to-teal-600 p-1"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Approvals
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center">
-              <CheckSquare className="h-4 w-4 text-teal-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">8</div>
-            <div className="flex items-center pt-1 text-xs text-red-600">
-              <ArrowDownRight className="h-3 w-3 mr-1" />
-              <span>3 new today</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-none shadow-md">
-          <CardHeader className="bg-gradient-to-r from-teal-600 to-emerald-700 text-white">
-            <CardTitle>Pending Student Approvals</CardTitle>
-            <CardDescription className="text-teal-100">
-              New student accounts awaiting approval
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {pendingApprovals.map((student) => (
-                <div
-                  key={student.id}
-                  className="flex items-center justify-between border-b pb-4"
-                >
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
-                        <span className="text-teal-600 font-semibold">
-                          {student.name.charAt(0)}
-                        </span>
-                      </div>
-                      <p className="font-medium">{student.name}</p>
-                    </div>
-                    <div className="ml-11">
-                      <p className="text-sm text-muted-foreground">
-                        {student.email}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Program:{" "}
-                        <span className="text-teal-600 font-medium">
-                          {student.program}
-                        </span>
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Applied on: {student.date}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800"
-                    >
-                      Approve
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {pendingApprovals.length === 0 && (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground">
-                    No pending student approvals
-                  </p>
-                </div>
-              )}
-              <div className="text-center pt-4">
-                <Link href="/dashboard/admin/student-approvals">
-                  <Button className="bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800">
-                    View All Approvals
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-1">
         <Card className="border-none shadow-md">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
             <CardTitle>Enrollment Statistics</CardTitle>
@@ -300,7 +186,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="text-center pt-6">
-              <Link href="/dashboard/admin/reports">
+              <Link href="/admin/reports">
                 <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800">
                   View Detailed Reports
                 </Button>
@@ -318,8 +204,8 @@ export default function AdminDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left font-medium p-2 pl-0 text-gray-600">
@@ -412,7 +298,7 @@ export default function AdminDashboard() {
             </table>
           </div>
           <div className="text-center pt-6">
-            <Link href="/dashboard/admin/courses">
+            <Link href="/admin/courses">
               <Button className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800">
                 Manage All Courses
               </Button>
@@ -421,9 +307,9 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center gap-4 mt-8">
-        <Link href="/dashboard/admin/create-course">
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 px-6 py-6 rounded-xl shadow-md">
+      <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+        <Link href="/admin/create-course" className="w-full sm:w-auto">
+          <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 px-6 py-6 rounded-xl shadow-md w-full">
             <BookOpen className="mr-3 h-5 w-5" />
             <div>
               <div className="font-semibold">Create New Course</div>
@@ -433,10 +319,10 @@ export default function AdminDashboard() {
             </div>
           </Button>
         </Link>
-        <Link href="/dashboard/admin/faculty">
+        <Link href="/admin/faculty" className="w-full sm:w-auto">
           <Button
             variant="outline"
-            className="px-6 py-6 rounded-xl border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-md"
+            className="px-6 py-6 rounded-xl border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-md w-full"
           >
             <UserPlus className="mr-3 h-5 w-5" />
             <div>
