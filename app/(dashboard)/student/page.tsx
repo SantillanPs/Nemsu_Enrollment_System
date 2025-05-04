@@ -139,7 +139,7 @@ export default function StudentDashboard() {
                 </div>
               ))}
               <div className="text-center pt-2">
-                <Link href="/dashboard/student/enrollments">
+                <Link href="/student/enrollments">
                   <Button variant="outline">View All Enrollments</Button>
                 </Link>
               </div>

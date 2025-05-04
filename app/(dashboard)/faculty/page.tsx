@@ -175,7 +175,7 @@ export default function FacultyDashboard() {
                 </div>
               )}
               <div className="text-center pt-2">
-                <Link href="/dashboard/faculty/requests">
+                <Link href="/faculty/requests">
                   <Button variant="outline">View All Requests</Button>
                 </Link>
               </div>

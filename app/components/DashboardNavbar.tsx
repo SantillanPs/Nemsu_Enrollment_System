@@ -12,7 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export function DashboardNavbar() {
+interface DashboardNavbarProps {
+  children?: React.ReactNode;
+}
+
+export function DashboardNavbar({ children }: DashboardNavbarProps) {
   const { data: session } = useSession();
 
   // Default to student if role is not available
@@ -30,8 +34,9 @@ export function DashboardNavbar() {
 
   return (
     <div className="border-b bg-white dark:bg-gray-800 shadow-sm">
-      <div className="flex h-16 items-center px-6">
-        <div className="flex items-center">
+      <div className="flex h-16 items-center px-4 md:px-6">
+        <div className="flex items-center gap-2">
+          {children}
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${roleBadgeColor}`}
           >

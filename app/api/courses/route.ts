@@ -102,7 +102,6 @@ export async function POST(request: Request) {
       "description",
       "credits",
       "capacity",
-      "facultyId",
       "semester",
       "year",
     ];
@@ -128,19 +127,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create course
+    // Create course with optional facultyId
+    const courseData = {
+      code: body.code,
+      name: body.name,
+      description: body.description,
+      credits: parseInt(body.credits),
+      capacity: parseInt(body.capacity),
+      semester: body.semester,
+      year: parseInt(body.year),
+      status: body.status || "OPEN",
+    };
+
+    // Only add facultyId if it's provided and not empty
+    if (body.facultyId) {
+      Object.assign(courseData, { facultyId: body.facultyId });
+    }
+
     const course = await prisma.course.create({
-      data: {
-        code: body.code,
-        name: body.name,
-        description: body.description,
-        credits: parseInt(body.credits),
-        capacity: parseInt(body.capacity),
-        facultyId: body.facultyId,
-        semester: body.semester,
-        year: parseInt(body.year),
-        status: body.status || "OPEN",
-      },
+      data: courseData,
       include: {
         faculty: {
           include: {

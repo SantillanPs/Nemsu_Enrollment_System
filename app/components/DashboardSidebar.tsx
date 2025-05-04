@@ -32,17 +32,11 @@ const navigationItems = {
       href: "/faculty/requests",
       icon: CheckSquare,
     },
-    { name: "Students", href: "/faculty/students", icon: Users },
-    { name: "Profile", href: "/faculty/profile", icon: User },
+    { name: "Student Documents", href: "/faculty/documents", icon: FileText },
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
     { name: "Manage Courses", href: "/admin/courses", icon: BookOpen },
-    {
-      name: "Student Approvals",
-      href: "/admin/student-approvals",
-      icon: CheckSquare,
-    },
     { name: "Faculty Management", href: "/admin/faculty", icon: Users },
     { name: "Create Course", href: "/admin/create-course", icon: PlusSquare },
   ],
@@ -55,7 +49,11 @@ const portalTitles = {
   admin: "Admin Portal",
 };
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  onCloseSidebar?: () => void;
+}
+
+export function DashboardSidebar({ onCloseSidebar }: DashboardSidebarProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
 
@@ -71,13 +69,36 @@ export function DashboardSidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-white dark:bg-gray-800 shadow-sm">
-      <div className="flex h-16 items-center border-b px-6 bg-gradient-to-r from-blue-600 to-indigo-700">
+      <div className="flex h-16 items-center justify-between border-b px-6 bg-gradient-to-r from-blue-600 to-indigo-700">
         <Link href={`/${userRole}`} className="flex items-center">
           <GraduationCap className="h-6 w-6 text-white" />
           <span className="ml-2 text-lg font-semibold text-white">
             {portalTitle}
           </span>
         </Link>
+        {onCloseSidebar && (
+          <button
+            onClick={onCloseSidebar}
+            className="text-white lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="lucide lucide-x"
+            >
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        )}
       </div>
       <div className="p-4">
         <div className="flex items-center space-x-3 mb-6">

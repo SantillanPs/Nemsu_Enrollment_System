@@ -134,8 +134,8 @@ model Course {
   description String
   credits     Int
   capacity    Int
-  facultyId   String
-  faculty     User         @relation("FacultyCourses", fields: [facultyId], references: [id])
+  facultyId   String?
+  faculty     User?        @relation("FacultyCourses", fields: [facultyId], references: [id])
   enrollments Enrollment[]
   semester    String // FIRST, SECOND, or SUMMER
   year        Int // Academic year (1-4)

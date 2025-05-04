@@ -8821,7 +8821,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId: string | null
     semester: string
     year: number
     status: $Enums.CourseStatus
@@ -8861,7 +8861,7 @@ export namespace Prisma {
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
     enrollments?: boolean | Course$enrollmentsArgs<ExtArgs>
     prerequisites?: boolean | Course$prerequisitesArgs<ExtArgs>
     prerequisiteFor?: boolean | Course$prerequisiteForArgs<ExtArgs>
@@ -8881,7 +8881,7 @@ export namespace Prisma {
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
   }, ExtArgs["result"]["course"]>
 
   export type CourseSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -8897,7 +8897,7 @@ export namespace Prisma {
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
   }, ExtArgs["result"]["course"]>
 
   export type CourseSelectScalar = {
@@ -8917,23 +8917,23 @@ export namespace Prisma {
 
   export type CourseOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "description" | "credits" | "capacity" | "facultyId" | "semester" | "year" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["course"]>
   export type CourseInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
     enrollments?: boolean | Course$enrollmentsArgs<ExtArgs>
     prerequisites?: boolean | Course$prerequisitesArgs<ExtArgs>
     prerequisiteFor?: boolean | Course$prerequisiteForArgs<ExtArgs>
     _count?: boolean | CourseCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type CourseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
   }
   export type CourseIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    faculty?: boolean | UserDefaultArgs<ExtArgs>
+    faculty?: boolean | Course$facultyArgs<ExtArgs>
   }
 
   export type $CoursePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Course"
     objects: {
-      faculty: Prisma.$UserPayload<ExtArgs>
+      faculty: Prisma.$UserPayload<ExtArgs> | null
       enrollments: Prisma.$EnrollmentPayload<ExtArgs>[]
       prerequisites: Prisma.$CoursePayload<ExtArgs>[]
       prerequisiteFor: Prisma.$CoursePayload<ExtArgs>[]
@@ -8945,7 +8945,7 @@ export namespace Prisma {
       description: string
       credits: number
       capacity: number
-      facultyId: string
+      facultyId: string | null
       semester: string
       year: number
       status: $Enums.CourseStatus
@@ -9345,7 +9345,7 @@ export namespace Prisma {
    */
   export interface Prisma__CourseClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    faculty<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    faculty<T extends Course$facultyArgs<ExtArgs> = {}>(args?: Subset<T, Course$facultyArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     enrollments<T extends Course$enrollmentsArgs<ExtArgs> = {}>(args?: Subset<T, Course$enrollmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EnrollmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     prerequisites<T extends Course$prerequisitesArgs<ExtArgs> = {}>(args?: Subset<T, Course$prerequisitesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CoursePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     prerequisiteFor<T extends Course$prerequisiteForArgs<ExtArgs> = {}>(args?: Subset<T, Course$prerequisiteForArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CoursePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -9781,6 +9781,25 @@ export namespace Prisma {
      * Limit how many Courses to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Course.faculty
+   */
+  export type Course$facultyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
   }
 
   /**
@@ -11637,13 +11656,13 @@ export namespace Prisma {
     description?: StringFilter<"Course"> | string
     credits?: IntFilter<"Course"> | number
     capacity?: IntFilter<"Course"> | number
-    facultyId?: StringFilter<"Course"> | string
+    facultyId?: StringNullableFilter<"Course"> | string | null
     semester?: StringFilter<"Course"> | string
     year?: IntFilter<"Course"> | number
     status?: EnumCourseStatusFilter<"Course"> | $Enums.CourseStatus
     createdAt?: DateTimeFilter<"Course"> | Date | string
     updatedAt?: DateTimeFilter<"Course"> | Date | string
-    faculty?: XOR<UserScalarRelationFilter, UserWhereInput>
+    faculty?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     enrollments?: EnrollmentListRelationFilter
     prerequisites?: CourseListRelationFilter
     prerequisiteFor?: CourseListRelationFilter
@@ -11656,7 +11675,7 @@ export namespace Prisma {
     description?: SortOrder
     credits?: SortOrder
     capacity?: SortOrder
-    facultyId?: SortOrder
+    facultyId?: SortOrderInput | SortOrder
     semester?: SortOrder
     year?: SortOrder
     status?: SortOrder
@@ -11678,13 +11697,13 @@ export namespace Prisma {
     description?: StringFilter<"Course"> | string
     credits?: IntFilter<"Course"> | number
     capacity?: IntFilter<"Course"> | number
-    facultyId?: StringFilter<"Course"> | string
+    facultyId?: StringNullableFilter<"Course"> | string | null
     semester?: StringFilter<"Course"> | string
     year?: IntFilter<"Course"> | number
     status?: EnumCourseStatusFilter<"Course"> | $Enums.CourseStatus
     createdAt?: DateTimeFilter<"Course"> | Date | string
     updatedAt?: DateTimeFilter<"Course"> | Date | string
-    faculty?: XOR<UserScalarRelationFilter, UserWhereInput>
+    faculty?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     enrollments?: EnrollmentListRelationFilter
     prerequisites?: CourseListRelationFilter
     prerequisiteFor?: CourseListRelationFilter
@@ -11697,7 +11716,7 @@ export namespace Prisma {
     description?: SortOrder
     credits?: SortOrder
     capacity?: SortOrder
-    facultyId?: SortOrder
+    facultyId?: SortOrderInput | SortOrder
     semester?: SortOrder
     year?: SortOrder
     status?: SortOrder
@@ -11720,7 +11739,7 @@ export namespace Prisma {
     description?: StringWithAggregatesFilter<"Course"> | string
     credits?: IntWithAggregatesFilter<"Course"> | number
     capacity?: IntWithAggregatesFilter<"Course"> | number
-    facultyId?: StringWithAggregatesFilter<"Course"> | string
+    facultyId?: StringNullableWithAggregatesFilter<"Course"> | string | null
     semester?: StringWithAggregatesFilter<"Course"> | string
     year?: IntWithAggregatesFilter<"Course"> | number
     status?: EnumCourseStatusWithAggregatesFilter<"Course"> | $Enums.CourseStatus
@@ -12287,7 +12306,7 @@ export namespace Prisma {
     status?: $Enums.CourseStatus
     createdAt?: Date | string
     updatedAt?: Date | string
-    faculty: UserCreateNestedOneWithoutTaughtCoursesInput
+    faculty?: UserCreateNestedOneWithoutTaughtCoursesInput
     enrollments?: EnrollmentCreateNestedManyWithoutCourseInput
     prerequisites?: CourseCreateNestedManyWithoutPrerequisiteForInput
     prerequisiteFor?: CourseCreateNestedManyWithoutPrerequisitesInput
@@ -12300,7 +12319,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId?: string | null
     semester: string
     year: number
     status?: $Enums.CourseStatus
@@ -12323,7 +12342,7 @@ export namespace Prisma {
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    faculty?: UserUpdateOneRequiredWithoutTaughtCoursesNestedInput
+    faculty?: UserUpdateOneWithoutTaughtCoursesNestedInput
     enrollments?: EnrollmentUpdateManyWithoutCourseNestedInput
     prerequisites?: CourseUpdateManyWithoutPrerequisiteForNestedInput
     prerequisiteFor?: CourseUpdateManyWithoutPrerequisitesNestedInput
@@ -12336,7 +12355,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -12354,7 +12373,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId?: string | null
     semester: string
     year: number
     status?: $Enums.CourseStatus
@@ -12383,7 +12402,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -12979,6 +12998,11 @@ export namespace Prisma {
     not?: NestedEnumCourseStatusFilter<$PrismaModel> | $Enums.CourseStatus
   }
 
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
   export type CourseCountOrderByAggregateInput = {
     id?: SortOrder
     code?: SortOrder
@@ -13555,10 +13579,12 @@ export namespace Prisma {
     set?: $Enums.CourseStatus
   }
 
-  export type UserUpdateOneRequiredWithoutTaughtCoursesNestedInput = {
+  export type UserUpdateOneWithoutTaughtCoursesNestedInput = {
     create?: XOR<UserCreateWithoutTaughtCoursesInput, UserUncheckedCreateWithoutTaughtCoursesInput>
     connectOrCreate?: UserCreateOrConnectWithoutTaughtCoursesInput
     upsert?: UserUpsertWithoutTaughtCoursesInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutTaughtCoursesInput, UserUpdateWithoutTaughtCoursesInput>, UserUncheckedUpdateWithoutTaughtCoursesInput>
   }
@@ -14129,7 +14155,7 @@ export namespace Prisma {
     description?: StringFilter<"Course"> | string
     credits?: IntFilter<"Course"> | number
     capacity?: IntFilter<"Course"> | number
-    facultyId?: StringFilter<"Course"> | string
+    facultyId?: StringNullableFilter<"Course"> | string | null
     semester?: StringFilter<"Course"> | string
     year?: IntFilter<"Course"> | number
     status?: EnumCourseStatusFilter<"Course"> | $Enums.CourseStatus
@@ -14782,7 +14808,7 @@ export namespace Prisma {
     status?: $Enums.CourseStatus
     createdAt?: Date | string
     updatedAt?: Date | string
-    faculty: UserCreateNestedOneWithoutTaughtCoursesInput
+    faculty?: UserCreateNestedOneWithoutTaughtCoursesInput
     enrollments?: EnrollmentCreateNestedManyWithoutCourseInput
     prerequisites?: CourseCreateNestedManyWithoutPrerequisiteForInput
   }
@@ -14794,7 +14820,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId?: string | null
     semester: string
     year: number
     status?: $Enums.CourseStatus
@@ -14821,7 +14847,7 @@ export namespace Prisma {
     status?: $Enums.CourseStatus
     createdAt?: Date | string
     updatedAt?: Date | string
-    faculty: UserCreateNestedOneWithoutTaughtCoursesInput
+    faculty?: UserCreateNestedOneWithoutTaughtCoursesInput
     enrollments?: EnrollmentCreateNestedManyWithoutCourseInput
     prerequisiteFor?: CourseCreateNestedManyWithoutPrerequisitesInput
   }
@@ -14833,7 +14859,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId?: string | null
     semester: string
     year: number
     status?: $Enums.CourseStatus
@@ -14968,7 +14994,7 @@ export namespace Prisma {
     status?: $Enums.CourseStatus
     createdAt?: Date | string
     updatedAt?: Date | string
-    faculty: UserCreateNestedOneWithoutTaughtCoursesInput
+    faculty?: UserCreateNestedOneWithoutTaughtCoursesInput
     prerequisites?: CourseCreateNestedManyWithoutPrerequisiteForInput
     prerequisiteFor?: CourseCreateNestedManyWithoutPrerequisitesInput
   }
@@ -14980,7 +15006,7 @@ export namespace Prisma {
     description: string
     credits: number
     capacity: number
-    facultyId: string
+    facultyId?: string | null
     semester: string
     year: number
     status?: $Enums.CourseStatus
@@ -15051,7 +15077,7 @@ export namespace Prisma {
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    faculty?: UserUpdateOneRequiredWithoutTaughtCoursesNestedInput
+    faculty?: UserUpdateOneWithoutTaughtCoursesNestedInput
     prerequisites?: CourseUpdateManyWithoutPrerequisiteForNestedInput
     prerequisiteFor?: CourseUpdateManyWithoutPrerequisitesNestedInput
   }
@@ -15063,7 +15089,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -15373,7 +15399,7 @@ export namespace Prisma {
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    faculty?: UserUpdateOneRequiredWithoutTaughtCoursesNestedInput
+    faculty?: UserUpdateOneWithoutTaughtCoursesNestedInput
     enrollments?: EnrollmentUpdateManyWithoutCourseNestedInput
     prerequisites?: CourseUpdateManyWithoutPrerequisiteForNestedInput
   }
@@ -15385,7 +15411,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -15402,7 +15428,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -15422,7 +15448,7 @@ export namespace Prisma {
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    faculty?: UserUpdateOneRequiredWithoutTaughtCoursesNestedInput
+    faculty?: UserUpdateOneWithoutTaughtCoursesNestedInput
     enrollments?: EnrollmentUpdateManyWithoutCourseNestedInput
     prerequisiteFor?: CourseUpdateManyWithoutPrerequisitesNestedInput
   }
@@ -15434,7 +15460,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
@@ -15451,7 +15477,7 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     credits?: IntFieldUpdateOperationsInput | number
     capacity?: IntFieldUpdateOperationsInput | number
-    facultyId?: StringFieldUpdateOperationsInput | string
+    facultyId?: NullableStringFieldUpdateOperationsInput | string | null
     semester?: StringFieldUpdateOperationsInput | string
     year?: IntFieldUpdateOperationsInput | number
     status?: EnumCourseStatusFieldUpdateOperationsInput | $Enums.CourseStatus
