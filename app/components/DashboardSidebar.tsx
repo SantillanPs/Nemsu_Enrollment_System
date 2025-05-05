@@ -28,10 +28,11 @@ const navigationItems = {
     { name: "Dashboard", href: "/faculty", icon: Home },
     { name: "My Courses", href: "/faculty/courses", icon: BookOpen },
     {
-      name: "Enrollment Requests",
-      href: "/faculty/requests",
-      icon: CheckSquare,
+      name: "Available Courses",
+      href: "/faculty/available-courses",
+      icon: PlusSquare,
     },
+
     { name: "Student Documents", href: "/faculty/documents", icon: FileText },
   ],
   admin: [

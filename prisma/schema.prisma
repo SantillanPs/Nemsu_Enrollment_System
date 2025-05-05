@@ -13,12 +13,6 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// Add seed configuration
-generator seed {
-  provider = "prisma-client-js"
-  output   = "./seed"
-}
-
 model User {
   id            String       @id @default(cuid())
   email         String       @unique
@@ -128,20 +122,21 @@ enum VerificationStatus {
 }
 
 model Course {
-  id          String       @id @default(cuid())
-  code        String       @unique // e.g., CS101
+  id          String          @id @default(cuid())
+  code        String          @unique // e.g., CS101
   name        String
   description String
   credits     Int
   capacity    Int
   facultyId   String?
-  faculty     User?        @relation("FacultyCourses", fields: [facultyId], references: [id])
+  faculty     User?           @relation("FacultyCourses", fields: [facultyId], references: [id])
   enrollments Enrollment[]
+  sections    CourseSection[]
   semester    String // FIRST, SECOND, or SUMMER
   year        Int // Academic year (1-4)
-  status      CourseStatus @default(OPEN)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  status      CourseStatus    @default(OPEN)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   // Prerequisites relationship
   prerequisites   Course[] @relation("CoursePrerequisites")
@@ -150,12 +145,30 @@ model Course {
   @@index([facultyId])
 }
 
+model CourseSection {
+  id          String       @id @default(cuid())
+  sectionCode String // e.g., A, B, C
+  courseId    String
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  schedule    String // e.g., "Mon, Wed 10:00 AM - 11:30 AM"
+  room        String // e.g., "Room 101"
+  maxStudents Int
+  enrollments Enrollment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([courseId, sectionCode])
+  @@index([courseId])
+}
+
 model Enrollment {
   id        String           @id @default(cuid())
   studentId String
   student   User             @relation("StudentEnrollments", fields: [studentId], references: [id])
   courseId  String
   course    Course           @relation(fields: [courseId], references: [id])
+  sectionId String?
+  section   CourseSection?   @relation(fields: [sectionId], references: [id])
   status    EnrollmentStatus @default(PENDING)
   grade     String?
   createdAt DateTime         @default(now())
@@ -164,6 +177,7 @@ model Enrollment {
   @@unique([studentId, courseId])
   @@index([studentId])
   @@index([courseId])
+  @@index([sectionId])
 }
 
 enum CourseStatus {

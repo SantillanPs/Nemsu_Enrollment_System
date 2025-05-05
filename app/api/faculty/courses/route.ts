@@ -57,6 +57,24 @@ export async function GET() {
             },
           },
         },
+        sections: {
+          include: {
+            enrollments: {
+              include: {
+                student: {
+                  include: {
+                    profile: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         prerequisites: {
           select: {
             id: true,
@@ -80,21 +98,55 @@ export async function GET() {
     }
 
     // Add enrollment statistics to each course
-    const coursesWithStats = courses.map(course => {
+    const coursesWithStats = courses.map((course) => {
       const totalEnrollments = course.enrollments.length;
-      const pendingEnrollments = course.enrollments.filter(e => e.status === "PENDING").length;
-      const approvedEnrollments = course.enrollments.filter(e => e.status === "APPROVED").length;
-      const completedEnrollments = course.enrollments.filter(e => e.status === "COMPLETED").length;
-      
+      const pendingEnrollments = course.enrollments.filter(
+        (e) => e.status === "PENDING"
+      ).length;
+      const approvedEnrollments = course.enrollments.filter(
+        (e) => e.status === "APPROVED"
+      ).length;
+      const completedEnrollments = course.enrollments.filter(
+        (e) => e.status === "COMPLETED"
+      ).length;
+
+      // Process sections with enrollment counts
+      const sectionsWithStats = (course.sections || []).map((section) => {
+        const sectionEnrollments = section.enrollments;
+        const totalSectionEnrollments = sectionEnrollments.length;
+        const pendingSectionEnrollments = sectionEnrollments.filter(
+          (e) => e.status === "PENDING"
+        ).length;
+        const approvedSectionEnrollments = sectionEnrollments.filter(
+          (e) => e.status === "APPROVED"
+        ).length;
+        const completedSectionEnrollments = sectionEnrollments.filter(
+          (e) => e.status === "COMPLETED"
+        ).length;
+
+        return {
+          ...section,
+          stats: {
+            totalEnrollments: totalSectionEnrollments,
+            pendingEnrollments: pendingSectionEnrollments,
+            approvedEnrollments: approvedSectionEnrollments,
+            completedEnrollments: completedSectionEnrollments,
+            availableSeats: section.maxStudents - approvedSectionEnrollments,
+          },
+        };
+      });
+
       return {
         ...course,
+        sections: sectionsWithStats,
         stats: {
           totalEnrollments,
           pendingEnrollments,
           approvedEnrollments,
           completedEnrollments,
           availableSeats: course.capacity - approvedEnrollments,
-        }
+          totalSections: course.sections ? course.sections.length : 0,
+        },
       };
     });
 
