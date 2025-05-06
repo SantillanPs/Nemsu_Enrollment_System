@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InviteFacultyDialog } from "./components/InviteFacultyDialog";
 
 interface Faculty {
   id: string;
@@ -250,12 +251,21 @@ export default function FacultyManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Faculty Management</h1>
-        <Link href="/admin/faculty/add">
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add New Faculty
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/faculty/invitations">
+            <Button variant="outline">
+              <Mail className="mr-2 h-4 w-4" />
+              View Invitations
+            </Button>
+          </Link>
+          <InviteFacultyDialog />
+          <Link href="/admin/faculty/add">
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add New Faculty
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (

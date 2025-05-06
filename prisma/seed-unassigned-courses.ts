@@ -1,93 +1,44 @@
-import { PrismaClient, CourseStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+// Define course status constants since they're stored as strings in the schema
+const CourseStatus = {
+  OPEN: "OPEN",
+  CLOSED: "CLOSED",
+};
 
 async function main() {
   console.log("Creating courses without assigned instructors...");
 
-  // Courses available for enrollment (OPEN) but without instructors
-  await Promise.all([
-    createCourse({
-      code: "OPEN101",
-      name: "Introduction to Open Learning",
-      description: "A course on self-directed learning methodologies",
-      credits: 3,
-      capacity: 35,
-      semester: "FIRST",
-      year: 1,
-      status: CourseStatus.OPEN,
-    }),
-    createCourse({
-      code: "OPEN201",
-      name: "Advanced Open Learning",
-      description: "Advanced techniques for self-directed learning",
-      credits: 3,
-      capacity: 30,
-      semester: "SECOND",
-      year: 2,
-      status: CourseStatus.OPEN,
-    }),
-    createCourse({
-      code: "OPEN301",
-      name: "Collaborative Learning",
-      description:
-        "Methods for effective group learning without formal instruction",
-      credits: 3,
-      capacity: 25,
-      semester: "FIRST",
-      year: 3,
-      status: CourseStatus.OPEN,
-    }),
-  ]);
+  // Courses available for enrollment (OPEN) but without instructors (reduced to 1)
+  await createCourse({
+    code: "OPEN201",
+    name: "Introduction to Open Learning",
+    description: "A course on self-directed learning methodologies",
+    credits: 3,
+    capacity: 35,
+    semester: "FIRST",
+    year: 1,
+    status: CourseStatus.OPEN,
+  });
 
   console.log(
     "Creating courses not yet available for enrollment (CLOSED) without instructors..."
   );
 
-  // Courses not available for enrollment (CLOSED) and without instructors
-  await Promise.all([
-    createCourse({
-      code: "FUTURE101",
-      name: "Future Technologies",
-      description:
-        "Exploration of emerging technologies and their potential impact",
-      credits: 3,
-      capacity: 40,
-      semester: "FIRST",
-      year: 1,
-      status: CourseStatus.CLOSED,
-    }),
-    createCourse({
-      code: "FUTURE201",
-      name: "Advanced Future Technologies",
-      description: "In-depth study of specific emerging technologies",
-      credits: 3,
-      capacity: 35,
-      semester: "SECOND",
-      year: 2,
-      status: CourseStatus.CLOSED,
-    }),
-    createCourse({
-      code: "FUTURE301",
-      name: "Future Technology Applications",
-      description: "Practical applications of emerging technologies",
-      credits: 3,
-      capacity: 30,
-      semester: "FIRST",
-      year: 3,
-      status: CourseStatus.CLOSED,
-    }),
-    createCourse({
-      code: "FUTURE401",
-      name: "Future Technology Integration",
-      description: "Integrating emerging technologies into existing systems",
-      credits: 3,
-      capacity: 25,
-      semester: "SECOND",
-      year: 4,
-      status: CourseStatus.CLOSED,
-    }),
-  ]);
+  // Courses not available for enrollment (CLOSED) and without instructors (reduced to 1)
+  await createCourse({
+    code: "FUTURE201",
+    name: "Future Technologies",
+    description:
+      "Exploration of emerging technologies and their potential impact",
+    credits: 3,
+    capacity: 40,
+    semester: "FIRST",
+    year: 1,
+    status: CourseStatus.CLOSED,
+  });
 
   console.log("Unassigned courses created successfully!");
 }
@@ -100,7 +51,7 @@ async function createCourse(data: {
   capacity: number;
   semester: string;
   year: number;
-  status: CourseStatus;
+  status: string;
 }) {
   return prisma.course.create({
     data,
