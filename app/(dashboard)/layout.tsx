@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSidebar, setActiveSidebar] = useState<string | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -78,12 +79,16 @@ export default function DashboardLayout({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <DashboardSidebar onCloseSidebar={() => setSidebarOpen(false)} />
+        <DashboardSidebar
+          onCloseSidebar={() => setSidebarOpen(false)}
+          activeSidebar={activeSidebar}
+          onSidebarChange={setActiveSidebar}
+        />
       </div>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col w-full">
-        <DashboardNavbar>
+        <DashboardNavbar activeSidebar={activeSidebar}>
           <Button
             id="sidebar-toggle"
             variant="ghost"

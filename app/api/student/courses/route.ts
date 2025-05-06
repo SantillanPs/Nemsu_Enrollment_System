@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export async function GET() {
   try {
@@ -19,8 +20,8 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is a student
-    if (user.role !== "STUDENT") {
+    // Check if user is a student or super admin
+    if (!hasRoleAccess(user.role, "STUDENT")) {
       return NextResponse.json(
         { error: "Only students can access this endpoint" },
         { status: 403 }

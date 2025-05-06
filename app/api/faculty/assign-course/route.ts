@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export async function POST(request: Request) {
   try {
@@ -19,8 +20,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is a faculty member
-    if (user.role !== "FACULTY") {
+    // Check if user is a faculty member or super admin
+    if (!hasRoleAccess(user.role, "FACULTY")) {
       return NextResponse.json(
         { error: "Only faculty members can assign themselves to courses" },
         { status: 403 }
@@ -43,10 +44,7 @@ export async function POST(request: Request) {
     });
 
     if (!course) {
-      return NextResponse.json(
-        { error: "Course not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
     // Check if the course already has a faculty assigned

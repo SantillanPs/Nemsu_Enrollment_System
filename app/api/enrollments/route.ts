@@ -73,22 +73,58 @@ export async function POST(request: Request) {
       );
     }
 
+    // Define required document types
+    const requiredDocumentTypes = [
+      "TOR",
+      "BIRTH_CERTIFICATE",
+      "GRADES",
+      "CLEARANCE",
+    ];
+
     // Check if user is verified
     if (!user.profile.isVerified) {
-      return NextResponse.json(
-        { error: "Your account must be verified before enrolling in courses" },
-        { status: 403 }
+      // Check if all required documents are submitted and verified
+      const documents = user.profile.documents || [];
+
+      // Check if all required documents are submitted
+      const missingDocuments = requiredDocumentTypes.filter(
+        (type) => !documents.some((doc) => doc.type === type)
       );
-    }
 
-    // Check if all required documents are verified
-    const hasUnverifiedDocuments = user.profile.documents.some(
-      (doc) => doc.status !== "VERIFIED"
-    );
+      if (missingDocuments.length > 0) {
+        return NextResponse.json(
+          {
+            error: `Missing required documents: ${missingDocuments.join(
+              ", "
+            )}. Please upload all required documents.`,
+          },
+          { status: 403 }
+        );
+      }
 
-    if (hasUnverifiedDocuments) {
+      // Check if all submitted documents are verified
+      const unverifiedDocuments = documents.filter(
+        (doc) => doc.status !== "VERIFIED"
+      );
+
+      if (unverifiedDocuments.length > 0) {
+        const unverifiedTypes = unverifiedDocuments
+          .map((doc) => doc.type)
+          .join(", ");
+        return NextResponse.json(
+          {
+            error: `The following documents are not yet verified: ${unverifiedTypes}. Please wait for verification or contact an administrator.`,
+          },
+          { status: 403 }
+        );
+      }
+
+      // This should not happen if the system is working correctly, but just in case
       return NextResponse.json(
-        { error: "All documents must be verified before enrolling in courses" },
+        {
+          error:
+            "Your account must be verified before enrolling in courses. Please contact an administrator.",
+        },
         { status: 403 }
       );
     }
@@ -101,17 +137,26 @@ export async function POST(request: Request) {
         },
       },
       include: {
-        prerequisites: true,
+        Course_B: true,
       },
     });
 
-    if (courses.length === 0) {
+    // Transform courses to include prerequisites
+    const transformedCourses = courses.map((course) => {
+      const { Course_B, ...rest } = course;
+      return {
+        ...rest,
+        prerequisites: Course_B || [],
+      };
+    });
+
+    if (transformedCourses.length === 0) {
       return NextResponse.json({ error: "No courses found" }, { status: 404 });
     }
 
     // Check for missing courses
-    if (courses.length !== courseIds.length) {
-      const foundCourseIds = courses.map((course) => course.id);
+    if (transformedCourses.length !== courseIds.length) {
+      const foundCourseIds = transformedCourses.map((course) => course.id);
       const missingCourseIds = courseIds.filter(
         (id) => !foundCourseIds.includes(id)
       );
@@ -147,7 +192,7 @@ export async function POST(request: Request) {
     const results = [];
     const errors = [];
 
-    for (const course of courses) {
+    for (const course of transformedCourses) {
       // Skip if already enrolled
       if (existingCourseIds.includes(course.id)) {
         errors.push({

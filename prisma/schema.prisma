@@ -12,6 +12,7 @@ model User {
   email         String       @unique
   password      String
   role          String       @default("STUDENT")
+  isSystemUser  Boolean      @default(false) // Flag for system-created users like the hard-coded super admin
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   taughtCourses Course[]     @relation("FacultyCourses")

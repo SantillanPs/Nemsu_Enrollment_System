@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 // Get all enrollment periods
 export async function GET(request: Request) {
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
       where: { email: session.user.email },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only admins can access enrollment periods" },
         { status: 403 }
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       where: { email: session.user.email },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only admins can create enrollment periods" },
         { status: 403 }

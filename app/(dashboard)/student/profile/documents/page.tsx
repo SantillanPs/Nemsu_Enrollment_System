@@ -148,6 +148,11 @@ export default function DocumentsPage() {
     documents.some((doc) => doc.type === type)
   );
 
+  // Check if all required documents are submitted and verified
+  const hasAllRequiredAndVerified = requiredDocuments.every((type) =>
+    documents.some((doc) => doc.type === type && doc.status === "VERIFIED")
+  );
+
   return (
     <div className="container py-6 space-y-6">
       <Card>
@@ -180,13 +185,25 @@ export default function DocumentsPage() {
                 Your account has been verified. You can now enroll in courses.
               </AlertDescription>
             </Alert>
-          ) : allDocumentsVerified ? (
+          ) : hasAllRequiredAndVerified ? (
             <Alert className="bg-yellow-50">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Verification Pending</AlertTitle>
               <AlertDescription>
-                All documents have been submitted and are awaiting faculty
-                verification.
+                All required documents have been submitted and verified. Your
+                account will be automatically verified soon, or an administrator
+                may verify it manually.
+              </AlertDescription>
+            </Alert>
+          ) : allDocumentsSubmitted ? (
+            <Alert className="bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle>Document Verification Pending</AlertTitle>
+              <AlertDescription>
+                All required documents have been submitted but some are still
+                awaiting verification. You will be able to enroll once all
+                documents are verified or an administrator verifies your
+                account.
               </AlertDescription>
             </Alert>
           ) : (
@@ -194,8 +211,12 @@ export default function DocumentsPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>Documents Required</AlertTitle>
               <AlertDescription>
-                Please upload all required documents to complete your enrollment
-                verification.
+                Please upload all required documents ({requiredDocuments.length}
+                ) to complete your enrollment verification. You must submit:{" "}
+                {requiredDocuments
+                  .map((type) => documentLabels[type])
+                  .join(", ")}
+                .
               </AlertDescription>
             </Alert>
           )}

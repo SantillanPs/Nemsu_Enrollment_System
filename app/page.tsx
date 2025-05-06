@@ -15,6 +15,11 @@ import {
   Calendar,
   ArrowRight,
   Check,
+  Wrench,
+  Computer,
+  Leaf,
+  Briefcase,
+  Building,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -26,7 +31,9 @@ export default function LandingPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-8 w-8" />
-              <span className="text-xl font-bold">Prestige University</span>
+              <span className="text-xl font-bold">
+                North Eastern Mindanao State University
+              </span>
             </div>
 
             <nav className="hidden md:flex gap-6 items-center">
@@ -99,11 +106,11 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 relative z-20">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 animate-fade-in">
-                Shape Your Future with Excellence
+                Empowering Mindanao Through Excellence in Education
               </h1>
               <p className="text-xl md:text-2xl opacity-90 mb-8 animate-fade-in delay-100">
-                Join our prestigious university and embark on a journey of
-                academic excellence, innovation, and personal growth.
+                Serving the Caraga Region with accessible, high-quality programs
+                across science, technology, and the arts.
               </p>
               <div className="flex flex-wrap gap-4 justify-center animate-fade-in delay-200">
                 <Link href="/signup">
@@ -114,13 +121,15 @@ export default function LandingPage() {
                     Apply Now
                   </Button>
                 </Link>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-blue-800 border-white hover:bg-white/20 hover:text-white transition-colors duration-300"
-                >
-                  Explore Programs
-                </Button>
+                <Link href="#programs">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-blue-800 border-white hover:bg-white/20 hover:text-white transition-colors duration-300"
+                  >
+                    Explore Programs
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -131,10 +140,10 @@ export default function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {[
-                { value: "15,000+", label: "Students" },
-                { value: "500+", label: "Faculty Members" },
-                { value: "200+", label: "Programs" },
-                { value: "95%", label: "Employment Rate" },
+                { value: "25,000+", label: "Students" },
+                { value: "700+", label: "Faculty Members" },
+                { value: "100+", label: "Programs" },
+                { value: "90%+", label: "Employment Rate" },
               ].map((stat, index) => (
                 <div
                   key={index}
@@ -169,45 +178,38 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
                 {
-                  title: "Business Administration",
+                  title: "Bachelor of Science in Civil Engineering",
                   description:
-                    "Develop leadership skills and business acumen for the modern corporate world with our AACSB-accredited program.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
+                    "Prepares students for careers in infrastructure, design, and environmental systems.",
+                  icon: <Wrench className="h-10 w-10 text-blue-700" />,
                   color: "bg-blue-50",
                 },
                 {
-                  title: "Computer Science",
+                  title: "Bachelor of Science in Information Technology",
                   description:
-                    "Learn cutting-edge technologies and programming skills for the digital age with hands-on projects and industry partnerships.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
+                    "Focuses on software development, systems analysis, and cybersecurity.",
+                  icon: <Computer className="h-10 w-10 text-blue-700" />,
                   color: "bg-blue-50",
                 },
                 {
-                  title: "Engineering",
+                  title: "Bachelor of Science in Marine Biology",
                   description:
-                    "Solve complex problems and design innovative solutions through our ABET-accredited engineering programs.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
+                    "Offers specialized training in marine ecosystems and coastal resource management.",
+                  icon: <Leaf className="h-10 w-10 text-blue-700" />,
                   color: "bg-blue-50",
                 },
                 {
-                  title: "Medicine & Health Sciences",
+                  title: "Bachelor of Elementary Education",
                   description:
-                    "Prepare for a rewarding career in healthcare with state-of-the-art facilities and clinical rotations.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
+                    "Equips future educators with pedagogical skills for primary education.",
+                  icon: <GraduationCap className="h-10 w-10 text-blue-700" />,
                   color: "bg-blue-50",
                 },
                 {
-                  title: "Arts & Humanities",
+                  title: "Master in Public Administration",
                   description:
-                    "Explore human culture, history, and creativity through diverse perspectives and interdisciplinary approaches.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
-                  color: "bg-blue-50",
-                },
-                {
-                  title: "Social Sciences",
-                  description:
-                    "Understand human behavior and social structures to address global challenges through research and fieldwork.",
-                  icon: <BookOpen className="h-10 w-10 text-blue-700" />,
+                    "Designed for professionals aiming for leadership roles in the public sector.",
+                  icon: <Briefcase className="h-10 w-10 text-blue-700" />,
                   color: "bg-blue-50",
                 },
               ].map((program, index) => (
@@ -252,8 +254,8 @@ export default function LandingPage() {
                 Admissions Process
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Join our community of scholars and innovators. Applications are
-                now open for the upcoming academic year.
+                Join our community of scholars and innovators. Apply through our
+                online pre-enrollment system at preenrollment.nemsu.edu.ph.
               </p>
             </div>
 
@@ -270,20 +272,20 @@ export default function LandingPage() {
                     <ul className="space-y-4">
                       {[
                         {
-                          label: "Early Application Deadline",
-                          date: "November 15, 2024",
+                          label: "Online Pre-enrollment Opens",
+                          date: "April 1, 2024",
                         },
                         {
-                          label: "Regular Application Deadline",
-                          date: "January 15, 2025",
+                          label: "Application Deadline",
+                          date: "June 30, 2024",
                         },
                         {
-                          label: "Decision Notification",
-                          date: "March 31, 2025",
+                          label: "Entrance Examination",
+                          date: "July 15-30, 2024",
                         },
                         {
-                          label: "Enrollment Confirmation",
-                          date: "May 1, 2025",
+                          label: "Classes Begin",
+                          date: "August 15, 2024",
                         },
                       ].map((item, index) => (
                         <li
@@ -310,11 +312,11 @@ export default function LandingPage() {
                   <CardContent>
                     <ul className="space-y-3">
                       {[
-                        "Completed application form",
-                        "Official high school transcripts",
-                        "Standardized test scores (SAT/ACT)",
-                        "Letters of recommendation",
-                        "Personal statement/essay",
+                        "Completed online application form",
+                        "High school report card/Form 138",
+                        "Certificate of Good Moral Character",
+                        "Birth certificate (PSA authenticated)",
+                        "2x2 ID photos (white background)",
                       ].map((item, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
@@ -331,8 +333,8 @@ export default function LandingPage() {
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold mb-2">Ready to Apply?</h3>
                     <p className="text-gray-600">
-                      Take the first step towards your future by creating an
-                      account and starting your application today.
+                      Take the first step towards your future at NEMSU by
+                      creating an account on our pre-enrollment portal.
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -370,8 +372,8 @@ export default function LandingPage() {
                 What Our Students Say
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Hear from our students about their experiences at Prestige
-                University.
+                Hear from our students about their experiences at North Eastern
+                Mindanao State University.
               </p>
             </div>
 
@@ -379,21 +381,21 @@ export default function LandingPage() {
               {[
                 {
                   quote:
-                    "The faculty at Prestige University are truly exceptional. They've challenged me to think critically and supported me every step of the way.",
-                  name: "Sarah Johnson",
-                  role: "Computer Science, Class of 2023",
+                    "NEMSU gave me the opportunity to pursue marine science close to home. The faculty and community are incredibly supportive.",
+                  name: "Ana L.",
+                  role: "Marine Biology Graduate",
                 },
                 {
                   quote:
-                    "The research opportunities here are unmatched. I've been able to work on cutting-edge projects as an undergraduate.",
-                  name: "Michael Chen",
-                  role: "Engineering, Class of 2024",
+                    "The engineering program at NEMSU provided me with practical skills that I now use daily in my work with local infrastructure projects.",
+                  name: "Marco D.",
+                  role: "Civil Engineering, Class of 2023",
                 },
                 {
                   quote:
-                    "The campus community is so welcoming. I've made lifelong friends and connections that will help me throughout my career.",
-                  name: "Emma Rodriguez",
-                  role: "Business Administration, Class of 2025",
+                    "As a future teacher, I appreciate how NEMSU's education program connects us with local schools for meaningful practice teaching experiences.",
+                  name: "Sophia R.",
+                  role: "Elementary Education, Class of 2024",
                 },
               ].map((testimonial, index) => (
                 <Card
@@ -436,11 +438,11 @@ export default function LandingPage() {
         <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Begin Your Academic Journey Today
+              Begin Your Academic Journey at NEMSU Today
             </h2>
             <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto opacity-90">
-              Join thousands of students who have transformed their lives
-              through our world-class education programs.
+              Join thousands of students across the Caraga Region who are
+              building their futures through quality education at NEMSU.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/signup">
@@ -456,7 +458,7 @@ export default function LandingPage() {
                 variant="outline"
                 className="text-blue-800 border-white hover:bg-white/20 hover:text-white transition-colors duration-300"
               >
-                Schedule Campus Tour
+                Visit Our Campus
               </Button>
             </div>
           </div>
@@ -470,11 +472,13 @@ export default function LandingPage() {
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <GraduationCap className="h-6 w-6" />
-                <span className="text-lg font-bold">Prestige University</span>
+                <span className="text-lg font-bold">
+                  North Eastern Mindanao State University
+                </span>
               </div>
               <p className="text-gray-400 mb-4">
-                Empowering minds and transforming lives through education since
-                1965.
+                Founded in 1982, renamed in 2021 to better reflect our regional
+                role in serving the Caraga Region.
               </p>
               <div className="flex gap-4">
                 {[
@@ -549,19 +553,19 @@ export default function LandingPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
               <address className="text-gray-400 not-italic space-y-2">
-                <p>123 University Avenue</p>
-                <p>City, State 12345</p>
-                <p>Email: info@prestige.edu</p>
-                <p>Phone: (123) 456-7890</p>
-                <p>Fax: (123) 456-7891</p>
+                <p>Main Campus, Tandag City</p>
+                <p>Surigao del Sur, Philippines</p>
+                <p>Email: info@nemsu.edu.ph</p>
+                <p>Phone: +63 (86) 214-4221</p>
+                <p>Facebook: facebook.com/NEMSUOfficial</p>
               </address>
             </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 mb-4 md:mb-0">
-              © {new Date().getFullYear()} Prestige University. All rights
-              reserved.
+              © {new Date().getFullYear()} North Eastern Mindanao State
+              University. All rights reserved.
             </p>
             <div className="flex gap-6">
               <Link

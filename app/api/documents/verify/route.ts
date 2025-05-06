@@ -33,29 +33,50 @@ export async function POST(request: Request) {
       },
     });
 
-    // If all documents are verified, update profile status
-    if (status === "VERIFIED") {
+    // Define required document types
+    const requiredDocumentTypes = [
+      "TOR",
+      "BIRTH_CERTIFICATE",
+      "GRADES",
+      "CLEARANCE",
+    ];
+
+    // If document is verified or rejected, check all documents and update profile status
+    if (status === "VERIFIED" || status === "REJECTED") {
       const profile = await prisma.profile.findUnique({
         where: { id: document.profileId },
         include: { documents: true },
       });
 
-      const allVerified = profile?.documents.every(
-        (doc) => doc.status === "VERIFIED"
+      if (!profile) {
+        return NextResponse.json(
+          { error: "Profile not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check if all required documents are submitted
+      const hasAllRequiredDocuments = requiredDocumentTypes.every((type) =>
+        profile.documents.some((doc) => doc.type === type)
       );
 
-      if (allVerified) {
-        await prisma.profile.update({
-          where: { id: document.profileId },
-          data: { isVerified: true },
-        });
-      }
-    } else if (status === "REJECTED") {
-      // If any document is rejected, set profile as unverified
+      // Check if all documents are verified
+      const allVerified =
+        hasAllRequiredDocuments &&
+        profile.documents.every((doc) => doc.status === "VERIFIED");
+
+      // Update profile verification status
       await prisma.profile.update({
         where: { id: document.profileId },
-        data: { isVerified: false },
+        data: { isVerified: allVerified },
       });
+
+      // Log the verification status
+      console.log(
+        `Profile ${document.profileId} verification status updated to ${allVerified}. ` +
+          `Has all required documents: ${hasAllRequiredDocuments}. ` +
+          `All documents verified: ${allVerified}.`
+      );
     }
 
     return NextResponse.json(document);

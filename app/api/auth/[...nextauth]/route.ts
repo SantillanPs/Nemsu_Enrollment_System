@@ -2,16 +2,19 @@ import NextAuth, { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { isSystemSuperAdmin } from "@/lib/utils/system-admin";
 
 declare module "next-auth" {
   interface Session {
     user: {
       role?: string;
+      isSystemUser?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: string;
+    isSystemUser?: boolean;
   }
 }
 
@@ -54,6 +57,7 @@ const handler = NextAuth({
           id: user.id,
           email: user.email,
           role: user.role,
+          isSystemUser: user.isSystemUser,
           name: `${user.profile.firstName} ${user.profile.lastName}`,
         };
       },
@@ -72,12 +76,14 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.isSystemUser = user.isSystemUser;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as string;
+        session.user.isSystemUser = token.isSystemUser as boolean;
       }
       return session;
     },

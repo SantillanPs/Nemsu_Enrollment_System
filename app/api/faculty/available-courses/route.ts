@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export async function GET() {
   try {
@@ -19,8 +20,8 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is a faculty member
-    if (user.role !== "FACULTY") {
+    // Check if user is a faculty member or super admin
+    if (!hasRoleAccess(user.role, "FACULTY")) {
       return NextResponse.json(
         { error: "Only faculty members can access this endpoint" },
         { status: 403 }
@@ -36,7 +37,7 @@ export async function GET() {
         },
       },
       include: {
-        prerequisites: {
+        Course_B: {
           select: {
             id: true,
             code: true,
@@ -58,7 +59,16 @@ export async function GET() {
       return NextResponse.json({ error: "No courses found" }, { status: 404 });
     }
 
-    return NextResponse.json(courses);
+    // Transform the response to map Course_B to prerequisites
+    const transformedCourses = courses.map((course) => {
+      const { Course_B, ...rest } = course;
+      return {
+        ...rest,
+        prerequisites: Course_B || [],
+      };
+    });
+
+    return NextResponse.json(transformedCourses);
   } catch (error) {
     console.error("Error fetching available courses:", error);
     return NextResponse.json(

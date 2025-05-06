@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { User, Bell, LogOut } from "lucide-react";
+import { User, Bell, LogOut, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,37 +11,89 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardNavbarProps {
   children?: React.ReactNode;
+  activeSidebar?: string | null;
 }
 
-export function DashboardNavbar({ children }: DashboardNavbarProps) {
+export function DashboardNavbar({
+  children,
+  activeSidebar,
+}: DashboardNavbarProps) {
   const { data: session } = useSession();
 
   // Default to student if role is not available
   const userRole = session?.user?.role?.toLowerCase() || "student";
 
-  // Role-specific badge colors
+  // For super admins, determine the effective role based on the active sidebar
+  const isSuperAdmin = userRole === "super_admin";
+  const effectiveRole =
+    isSuperAdmin && activeSidebar ? activeSidebar : userRole;
+
+  // Role-specific colors
   const roleColors = {
-    student: "bg-green-100 text-green-800",
-    faculty: "bg-orange-100 text-orange-800",
-    admin: "bg-blue-100 text-blue-800",
+    student: {
+      badge: "bg-green-100 text-green-800",
+      avatar: "bg-green-600 border-green-200",
+      avatarBg: "bg-green-100",
+      avatarText: "text-green-600",
+    },
+    faculty: {
+      badge: "bg-amber-100 text-amber-800",
+      avatar: "bg-amber-600 border-amber-200",
+      avatarBg: "bg-amber-100",
+      avatarText: "text-amber-600",
+    },
+    admin: {
+      badge: "bg-blue-100 text-blue-800",
+      avatar: "bg-blue-600 border-blue-200",
+      avatarBg: "bg-blue-100",
+      avatarText: "text-blue-600",
+    },
+    super_admin: {
+      badge: "bg-red-100 text-red-800",
+      avatar: "bg-red-600 border-red-200",
+      avatarBg: "bg-red-100",
+      avatarText: "text-red-600",
+    },
   };
 
-  const roleBadgeColor =
-    roleColors[userRole as keyof typeof roleColors] || roleColors.student;
+  const roleTheme =
+    roleColors[effectiveRole as keyof typeof roleColors] || roleColors.student;
 
   return (
     <div className="border-b bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex h-16 items-center px-4 md:px-6">
         <div className="flex items-center gap-2">
           {children}
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${roleBadgeColor}`}
-          >
-            {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${roleTheme.badge}`}
+            >
+              {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
+            </span>
+
+            {/* Show super admin badge when viewing other dashboards */}
+            {isSuperAdmin && activeSidebar && (
+              <Badge
+                variant="outline"
+                className={`flex items-center gap-1 ${
+                  activeSidebar === "student"
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : activeSidebar === "faculty"
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : activeSidebar === "admin"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-red-50 text-red-700 border-red-200"
+                }`}
+              >
+                <Shield className="h-3 w-3" />
+                <span className="text-xs">Super Admin</span>
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="ml-auto flex items-center space-x-4">
           {/* Theme Toggle - Placeholder for future implementation */}
@@ -112,9 +164,19 @@ export function DashboardNavbar({ children }: DashboardNavbarProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8 border-2 border-blue-100">
+                <Avatar
+                  className={`h-8 w-8 border-2 ${
+                    effectiveRole === "student"
+                      ? "border-green-200"
+                      : effectiveRole === "faculty"
+                      ? "border-amber-200"
+                      : effectiveRole === "admin"
+                      ? "border-blue-200"
+                      : "border-red-200"
+                  }`}
+                >
                   <AvatarImage src={session?.user?.image || ""} alt="Profile" />
-                  <AvatarFallback className="bg-blue-600 text-white">
+                  <AvatarFallback className={`${roleTheme.avatar} text-white`}>
                     {session?.user?.name?.charAt(0) ||
                       userRole.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -125,7 +187,7 @@ export function DashboardNavbar({ children }: DashboardNavbarProps) {
               <div className="flex items-center justify-start gap-2 p-2 border-b mb-1">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={session?.user?.image || ""} alt="Profile" />
-                  <AvatarFallback className="bg-blue-600 text-white">
+                  <AvatarFallback className={`${roleTheme.avatar} text-white`}>
                     {session?.user?.name?.charAt(0) ||
                       userRole.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -141,7 +203,7 @@ export function DashboardNavbar({ children }: DashboardNavbarProps) {
               </div>
               <DropdownMenuItem asChild>
                 <Link
-                  href={`/${userRole}/profile`}
+                  href={`/${effectiveRole}/profile`}
                   className="flex items-center cursor-pointer"
                 >
                   <User className="mr-2 h-4 w-4" />

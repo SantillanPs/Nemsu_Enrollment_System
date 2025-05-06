@@ -17,7 +17,7 @@ export async function GET() {
             },
           },
         },
-        prerequisites: {
+        Course_B: {
           select: {
             id: true,
             code: true,
@@ -44,7 +44,16 @@ export async function GET() {
       return NextResponse.json({ error: "No courses found" }, { status: 404 });
     }
 
-    return NextResponse.json(courses);
+    // Transform the response to map Course_B to prerequisites
+    const transformedCourses = courses.map((course) => {
+      const { Course_B, ...rest } = course;
+      return {
+        ...rest,
+        prerequisites: Course_B || [],
+      };
+    });
+
+    return NextResponse.json(transformedCourses);
   } catch (error) {
     console.error("Error fetching courses:", error);
     if (error instanceof Prisma.PrismaClientInitializationError) {
@@ -169,7 +178,7 @@ export async function POST(request: Request) {
       await prisma.course.update({
         where: { id: course.id },
         data: {
-          prerequisites: {
+          Course_B: {
             connect: body.prerequisites.map((id: string) => ({ id })),
           },
         },

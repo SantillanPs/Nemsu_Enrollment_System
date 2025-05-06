@@ -69,7 +69,14 @@ export default function LoginPage() {
       const role = session?.user?.role;
 
       if (role) {
-        router.push(`/${role.toLowerCase()}`);
+        // Handle SUPER_ADMIN role - redirect to super admin dashboard with hyphen
+        if (role.toUpperCase() === "SUPER_ADMIN") {
+          router.push("/super-admin"); // Super admins use their own dashboard
+        } else {
+          // For other roles, convert to lowercase and replace underscores with hyphens
+          const formattedRole = role.toLowerCase().replace("_", "-");
+          router.push(`/${formattedRole}`);
+        }
       } else {
         router.push("/dashboard");
       }
