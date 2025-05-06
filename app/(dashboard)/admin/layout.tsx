@@ -16,6 +16,7 @@ export default function AdminLayout({
     if (pathname === "/admin/courses") return "Course Management";
     if (pathname === "/admin/faculty") return "Faculty Management";
     if (pathname === "/admin/create-course") return "Create Course";
+    if (pathname === "/admin/enrollment-periods") return "Enrollment Periods";
 
     // For dynamic routes
     if (pathname.startsWith("/admin/courses/")) {

@@ -62,14 +62,28 @@ export default function MyCourses() {
 
   const fetchEnrollments = async () => {
     try {
+      setLoading(true);
       const response = await fetch("/api/student/courses");
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      }
+
       const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setEnrollments(data);
     } catch (error) {
       console.error("Error fetching enrollments:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch enrolled courses. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch enrolled courses. Please try again.",
         variant: "destructive",
       });
     } finally {

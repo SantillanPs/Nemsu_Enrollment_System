@@ -8,8 +8,7 @@ import {
   Home,
   BookOpen,
   Users,
-  User,
-  CheckSquare,
+  Calendar,
   PlusSquare,
   FileText,
   GraduationCap,
@@ -40,6 +39,11 @@ const navigationItems = {
     { name: "Manage Courses", href: "/admin/courses", icon: BookOpen },
     { name: "Faculty Management", href: "/admin/faculty", icon: Users },
     { name: "Create Course", href: "/admin/create-course", icon: PlusSquare },
+    {
+      name: "Enrollment Periods",
+      href: "/admin/enrollment-periods",
+      icon: Calendar,
+    },
   ],
 };
 

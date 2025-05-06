@@ -8,7 +8,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getUserById(params.id);
+    // Await params before accessing its properties
+    const { id } = await params;
+    const user = await getUserById(id);
     if (!user) {
       return errorResponse("User not found", 404);
     }
@@ -24,9 +26,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Await params before accessing its properties
+    const { id } = await params;
     const body = await request.json();
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         profile: {
           update: {
@@ -54,8 +58,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Await params before accessing its properties
+    const { id } = await params;
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id },
     });
     return successResponse(null, "User deleted successfully");
   } catch (error) {

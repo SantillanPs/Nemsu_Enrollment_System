@@ -189,12 +189,17 @@ export default function SignupPage() {
         throw new Error(responseData.error || "Failed to create account");
       }
 
+      // Show success toast with longer duration
       toast({
         title: "Registration Successful",
         description: "Your account has been created. You can now log in.",
+        duration: 5000, // 5 seconds
       });
 
-      router.push("/login?registered=true");
+      // Add a small delay before redirecting to ensure the toast is visible
+      setTimeout(() => {
+        router.push("/login?registered=true");
+      }, 1500);
     } catch (error) {
       console.error("Signup error:", error);
       toast({

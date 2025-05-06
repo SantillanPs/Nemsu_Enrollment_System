@@ -1,9 +1,9 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GraduationCap, ArrowLeft } from "lucide-react";
+import { GraduationCap, ArrowLeft, CheckCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if user was redirected from successful registration
+    const registered = searchParams.get("registered");
+    if (registered === "true") {
+      setSuccessMessage(
+        "Registration successful! You can now log in with your credentials."
+      );
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. You can now log in.",
+        variant: "default",
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -126,6 +145,13 @@ export default function LoginPage() {
               {error && (
                 <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
                   {error}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="text-sm text-green-600 bg-green-50 p-2 rounded flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {successMessage}
                 </div>
               )}
 

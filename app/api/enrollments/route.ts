@@ -23,6 +23,32 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if enrollment is currently allowed
+    try {
+      const now = new Date();
+      const activeEnrollmentPeriod = await prisma.enrollmentPeriod.findFirst({
+        where: {
+          isActive: true,
+          startDate: { lte: now },
+          endDate: { gte: now },
+        },
+      });
+
+      if (!activeEnrollmentPeriod) {
+        return NextResponse.json(
+          {
+            error:
+              "Enrollment is currently closed. Please check back during the enrollment period.",
+          },
+          { status: 403 }
+        );
+      }
+    } catch (error) {
+      console.error("Error checking enrollment period:", error);
+      // If there's an error (like table doesn't exist), continue with enrollment
+      // This allows enrollment to work before the enrollment periods feature is fully set up
+    }
+
     // Get user's profile with verification status
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },

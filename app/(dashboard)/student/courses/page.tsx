@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 interface Course {
@@ -42,11 +43,11 @@ interface Course {
   year: number;
   status: "OPEN" | "CLOSED" | "CANCELLED";
   faculty: {
-    profile: {
-      firstName: string;
-      lastName: string;
+    profile?: {
+      firstName?: string;
+      lastName?: string;
     };
-  };
+  } | null;
   prerequisites: {
     id: string;
     code: string;
@@ -66,10 +67,20 @@ export default function AvailableCourses() {
     Record<string, string[]>
   >({});
   const [completedCourseIds, setCompletedCourseIds] = useState<string[]>([]);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<{
+    isEnrollmentOpen: boolean;
+    currentPeriod: any;
+    nextPeriod: any;
+  }>({
+    isEnrollmentOpen: false,
+    currentPeriod: null,
+    nextPeriod: null,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
+    fetchEnrollmentStatus();
   }, []);
 
   const fetchData = async () => {
@@ -137,14 +148,37 @@ export default function AvailableCourses() {
     }
   };
 
+  const fetchEnrollmentStatus = async () => {
+    try {
+      const response = await fetch("/api/enrollment-status");
+      if (!response.ok) {
+        throw new Error("Failed to fetch enrollment status");
+      }
+      const data = await response.json();
+      setEnrollmentStatus(data);
+    } catch (error) {
+      console.error("Error fetching enrollment status:", error);
+      // Default to open enrollment if there's an error
+      setEnrollmentStatus({
+        isEnrollmentOpen: true,
+        currentPeriod: null,
+        nextPeriod: null,
+      });
+    }
+  };
+
   // Filter courses based on search term, year, and semester
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      (course.faculty && course.faculty.profile
+        ? `${course.faculty.profile.firstName || ""} ${
+            course.faculty.profile.lastName || ""
+          }`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+        : false);
 
     const matchesYear =
       selectedYear === "all" || course.year.toString() === selectedYear;
@@ -412,6 +446,74 @@ export default function AvailableCourses() {
 
   return (
     <div className="container mx-auto p-6">
+      {!enrollmentStatus.isEnrollmentOpen && (
+        <Alert
+          className={
+            enrollmentStatus.nextPeriod
+              ? "bg-amber-50 border-amber-200 mb-6"
+              : "bg-red-50 border-red-200 mb-6"
+          }
+        >
+          <AlertCircle
+            className={
+              enrollmentStatus.nextPeriod
+                ? "h-4 w-4 text-amber-600"
+                : "h-4 w-4 text-red-600"
+            }
+          />
+          <AlertTitle
+            className={
+              enrollmentStatus.nextPeriod ? "text-amber-800" : "text-red-800"
+            }
+          >
+            {enrollmentStatus.nextPeriod
+              ? "Enrollment Period Coming Soon"
+              : "Enrollment is Currently Closed"}
+          </AlertTitle>
+          <AlertDescription
+            className={
+              enrollmentStatus.nextPeriod ? "text-amber-700" : "text-red-700"
+            }
+          >
+            {enrollmentStatus.nextPeriod ? (
+              <>
+                The next enrollment period ({enrollmentStatus.nextPeriod.name})
+                will start on{" "}
+                {new Date(
+                  enrollmentStatus.nextPeriod.startDate
+                ).toLocaleDateString()}{" "}
+                at{" "}
+                {new Date(
+                  enrollmentStatus.nextPeriod.startDate
+                ).toLocaleTimeString()}
+                .
+              </>
+            ) : (
+              "There are no active enrollment periods at this time. Please check back later or contact the registrar's office for more information."
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {enrollmentStatus.isEnrollmentOpen && enrollmentStatus.currentPeriod && (
+        <Alert className="bg-green-50 border-green-200 mb-6">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">Enrollment is Open</AlertTitle>
+          <AlertDescription className="text-green-700">
+            The current enrollment period ({enrollmentStatus.currentPeriod.name}
+            ) is active until{" "}
+            {new Date(
+              enrollmentStatus.currentPeriod.endDate
+            ).toLocaleDateString()}{" "}
+            at{" "}
+            {new Date(
+              enrollmentStatus.currentPeriod.endDate
+            ).toLocaleTimeString()}
+            .
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="bg-white dark:bg-slate-900 border rounded-lg shadow-sm p-6 mb-8">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -420,7 +522,11 @@ export default function AvailableCourses() {
 
           <Button
             onClick={handleEnrollAll}
-            disabled={enrollingCourses.length > 0 || courses.length === 0}
+            disabled={
+              !enrollmentStatus.isEnrollmentOpen ||
+              enrollingCourses.length > 0 ||
+              courses.length === 0
+            }
             className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white"
             size="lg"
           >
@@ -571,6 +677,7 @@ export default function AvailableCourses() {
                         )}
                         onClick={() => handleBulkEnrollment(groupKey)}
                         disabled={
+                          !enrollmentStatus.isEnrollmentOpen ||
                           selectedInGroup.length === 0 ||
                           enrollingCourses.length > 0
                         }
@@ -670,8 +777,15 @@ export default function AvailableCourses() {
                                       />
                                     </svg>
                                     <span>
-                                      {course.faculty.profile.firstName}{" "}
-                                      {course.faculty.profile.lastName}
+                                      {course.faculty
+                                        ? `${
+                                            course.faculty.profile?.firstName ||
+                                            ""
+                                          } ${
+                                            course.faculty.profile?.lastName ||
+                                            ""
+                                          }`
+                                        : "No instructor assigned"}
                                     </span>
                                   </div>
                                 </CardDescription>
@@ -887,6 +1001,7 @@ export default function AvailableCourses() {
                               )}
                               onClick={() => handleEnrollment(course.id)}
                               disabled={
+                                !enrollmentStatus.isEnrollmentOpen ||
                                 isEnrolling ||
                                 (course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
