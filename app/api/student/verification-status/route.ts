@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { DocumentType } from "@prisma/client";
+import { DocumentType } from "@/app/constants/documents";
 
 export async function GET() {
   try {
+    console.log("Fetching student verification status...");
     const session = await getServerSession();
+
     if (!session?.user?.email) {
+      console.log("Unauthorized: No user email in session");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log(`Fetching profile for user: ${session.user.email}`);
 
     // Get user's profile with documents
     const user = await prisma.user.findUnique({
@@ -22,12 +27,23 @@ export async function GET() {
       },
     });
 
+    console.log(`User found: ${!!user}, Has profile: ${!!user?.profile}`);
+
     if (!user?.profile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 404 }
-      );
+      console.log(`Profile not found for user: ${session.user.email}`);
+
+      // Instead of returning a 404 error, return a default response
+      // This allows the frontend to continue working even if the profile is missing
+      return NextResponse.json({
+        isVerified: false,
+        pendingDocuments: ["PROFILE_MISSING"],
+        hasAllDocuments: false,
+        profileMissing: true,
+      });
     }
+
+    console.log(`User verification status: ${user.profile.isVerified}`);
+    console.log(`Documents count: ${user.profile.documents.length}`);
 
     // Define required document types
     const requiredDocumentTypes: DocumentType[] = [
@@ -38,25 +54,25 @@ export async function GET() {
     ];
 
     const documents = user.profile.documents || [];
-    
+
     // Check which documents are missing or pending
     const pendingDocuments: string[] = [];
-    
+
     // Check if all required documents are submitted
     const missingDocuments = requiredDocumentTypes.filter(
       (type) => !documents.some((doc) => doc.type === type)
     );
-    
+
     // Add missing documents to pending list
-    missingDocuments.forEach(type => pendingDocuments.push(type));
-    
+    missingDocuments.forEach((type) => pendingDocuments.push(type));
+
     // Check if any submitted documents are not verified
     const unverifiedDocuments = documents.filter(
       (doc) => doc.status !== "VERIFIED"
     );
-    
+
     // Add unverified documents to pending list if not already in the list
-    unverifiedDocuments.forEach(doc => {
+    unverifiedDocuments.forEach((doc) => {
       if (!pendingDocuments.includes(doc.type)) {
         pendingDocuments.push(doc.type);
       }
@@ -65,11 +81,18 @@ export async function GET() {
     // Check if all required documents are submitted
     const hasAllDocuments = missingDocuments.length === 0;
 
-    return NextResponse.json({
+    console.log(`Missing documents: ${missingDocuments.length}`);
+    console.log(`Pending documents: ${pendingDocuments.length}`);
+    console.log(`Has all documents: ${hasAllDocuments}`);
+
+    const response = {
       isVerified: user.profile.isVerified,
       pendingDocuments,
       hasAllDocuments,
-    });
+    };
+
+    console.log("Returning verification status:", response);
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error checking verification status:", error);
     return NextResponse.json(

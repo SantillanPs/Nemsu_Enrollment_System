@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Upload, X, FileCheck, AlertCircle, Clock } from "lucide-react";
+import {
+  Upload,
+  X,
+  FileCheck,
+  AlertCircle,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,11 +17,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DocumentType, VerificationStatus } from "@prisma/client";
+import {
+  DocumentType,
+  VerificationStatus,
+  statusConfig,
+} from "@/app/constants/documents";
 import { useToast } from "@/components/ui/use-toast";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+const ACCEPTED_FILE_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "application/x-pdf",
+  "pdf",
+  "jpeg",
+  "jpg",
+  "png",
+];
 
 interface DocumentUploadProps {
   documentType: DocumentType;
@@ -38,31 +59,28 @@ export function DocumentUpload({
 }: DocumentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
-  const statusConfig = {
-    PENDING: {
-      color: "bg-yellow-500",
-      icon: Clock,
-      text: "Pending Review",
-    },
-    VERIFIED: {
-      color: "bg-green-500",
-      icon: FileCheck,
-      text: "Verified",
-    },
-    REJECTED: {
-      color: "bg-red-500",
-      icon: AlertCircle,
-      text: "Rejected",
-    },
+  // Document uploads are suspended - force disable all upload/delete functionality
+  const isUploadSuspended = true;
+
+  // Using statusConfig from constants, but adding icons
+  const statusIcons = {
+    [VerificationStatus.PENDING]: Clock,
+    [VerificationStatus.VERIFIED]: FileCheck,
+    [VerificationStatus.REJECTED]: AlertCircle,
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log("File selected:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
 
     if (file.size > MAX_FILE_SIZE) {
       toast({
@@ -73,10 +91,33 @@ export function DocumentUpload({
       return;
     }
 
-    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+    // Check file type - be more permissive with MIME types
+    const isAcceptedType = ACCEPTED_FILE_TYPES.some(
+      (type) => file.type.includes(type.split("/")[1]) || file.type === type
+    );
+
+    if (!isAcceptedType) {
       toast({
         title: "Error",
-        description: "File type should be PDF, JPEG, or PNG",
+        description: `File type '${file.type}' is not supported. Please use PDF, JPEG, or PNG files.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Just store the file for now, don't upload yet
+    setSelectedFile(file);
+    toast({
+      title: "File Selected",
+      description: "Click 'Submit' to upload the document",
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file first",
         variant: "destructive",
       });
       return;
@@ -84,15 +125,24 @@ export function DocumentUpload({
 
     setIsUploading(true);
     try {
-      await onUpload(file);
+      await onUpload(selectedFile);
       toast({
         title: "Success",
         description: "Document uploaded successfully",
       });
+      // Clear the selected file after successful upload
+      setSelectedFile(null);
     } catch (error) {
+      console.error("Document upload error:", error);
+      let errorMessage = "Failed to upload document";
+
+      if (error instanceof Error) {
+        errorMessage = `Upload failed: ${error.message}`;
+      }
+
       toast({
         title: "Error",
-        description: "Failed to upload document",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -121,12 +171,19 @@ export function DocumentUpload({
     }
   };
 
+  // Check if this is an auto-verified document without a file
+  const isAutoVerifiedWithoutFile =
+    currentDocument?.status === "VERIFIED" &&
+    (!currentDocument.fileUrl || currentDocument.fileUrl === "");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">{documentLabel}</CardTitle>
         <CardDescription>
-          Upload your {documentLabel.toLowerCase()} (PDF, JPEG, or PNG, max 5MB)
+          {!onUpload
+            ? `${documentLabel} verification status`
+            : `Upload your ${documentLabel.toLowerCase()} (PDF, JPEG, or PNG, max 5MB)`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -134,8 +191,16 @@ export function DocumentUpload({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FileCheck className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">Document uploaded</span>
+                {isAutoVerifiedWithoutFile ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <FileCheck className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="text-sm">
+                  {isAutoVerifiedWithoutFile
+                    ? "Automatically verified"
+                    : "Document uploaded"}
+                </span>
               </div>
               {currentDocument.status && (
                 <Badge
@@ -143,8 +208,7 @@ export function DocumentUpload({
                   className={statusConfig[currentDocument.status].color}
                 >
                   {(() => {
-                    const StatusIcon =
-                      statusConfig[currentDocument.status].icon;
+                    const StatusIcon = statusIcons[currentDocument.status];
                     return <StatusIcon className="mr-1 h-3 w-3" />;
                   })()}
                   {statusConfig[currentDocument.status].text}
@@ -158,24 +222,98 @@ export function DocumentUpload({
               </div>
             )}
 
-            {onDelete && currentDocument.status !== "VERIFIED" && (
+            {!isAutoVerifiedWithoutFile && currentDocument.fileUrl && (
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 className="w-full"
-                onClick={handleDelete}
-                disabled={isDeleting}
+                onClick={() => window.open(currentDocument.fileUrl, "_blank")}
               >
-                {isDeleting ? (
-                  "Deleting..."
-                ) : (
-                  <>
-                    <X className="mr-2 h-4 w-4" />
-                    Remove Document
-                  </>
-                )}
+                <FileCheck className="mr-2 h-4 w-4" />
+                View Document
               </Button>
             )}
+
+            {onUpload &&
+              currentDocument.status !== "VERIFIED" &&
+              !isUploadSuspended && (
+                <div className="mt-2">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Replace document:
+                  </p>
+                  <Input
+                    id={`document-replace-${documentType}`}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    disabled={isUploading || isUploadSuspended}
+                    size="sm"
+                  />
+                  {selectedFile && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center">
+                        <FileCheck className="mr-1 h-3 w-3 text-green-500" />
+                        <span>Selected: {selectedFile.name}</span>
+                      </div>
+                      <Button
+                        onClick={handleSubmit}
+                        className="w-full mt-2"
+                        size="sm"
+                        disabled={isUploading || isUploadSuspended}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Upload className="mr-1 h-3 w-3 animate-bounce" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-1 h-3 w-3" />
+                            Submit Replacement
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {isUploading && !selectedFile && (
+                    <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                      <Upload className="mr-1 h-3 w-3 animate-bounce" />
+                      Uploading...
+                    </div>
+                  )}
+                </div>
+              )}
+
+            {onUpload &&
+              currentDocument.status !== "VERIFIED" &&
+              isUploadSuspended && (
+                <div className="mt-2">
+                  <p className="text-xs text-red-500 mb-1">
+                    Document uploads are currently suspended.
+                  </p>
+                </div>
+              )}
+
+            {onDelete &&
+              currentDocument.status !== "VERIFIED" &&
+              !isUploadSuspended && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={handleDelete}
+                  disabled={isDeleting || isUploadSuspended}
+                >
+                  {isDeleting ? (
+                    "Deleting..."
+                  ) : (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Remove Document
+                    </>
+                  )}
+                </Button>
+              )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -183,21 +321,55 @@ export function DocumentUpload({
               <AlertCircle className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm">No document uploaded</span>
             </div>
-            <div className="grid w-full items-center gap-1.5">
-              <Input
-                id={`document-${documentType}`}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-                disabled={isUploading}
-              />
-              {isUploading && (
-                <Button disabled className="w-full">
-                  <Upload className="mr-2 h-4 w-4 animate-bounce" />
-                  Uploading...
-                </Button>
-              )}
-            </div>
+            {onUpload && !isUploadSuspended && (
+              <div className="grid w-full items-center gap-1.5">
+                <Input
+                  id={`document-${documentType}`}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  disabled={isUploading || isUploadSuspended}
+                />
+                {selectedFile && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <FileCheck className="mr-1 h-4 w-4 text-green-500" />
+                      <span>Selected: {selectedFile.name}</span>
+                    </div>
+                    <Button
+                      onClick={handleSubmit}
+                      className="w-full mt-2"
+                      disabled={isUploading || isUploadSuspended}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Upload className="mr-2 h-4 w-4 animate-bounce" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Submit Document
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                {isUploading && !selectedFile && (
+                  <Button disabled className="w-full">
+                    <Upload className="mr-2 h-4 w-4 animate-bounce" />
+                    Uploading...
+                  </Button>
+                )}
+              </div>
+            )}
+            {onUpload && isUploadSuspended && (
+              <div className="mt-2">
+                <p className="text-xs text-red-500 mb-1">
+                  Document uploads are currently suspended.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

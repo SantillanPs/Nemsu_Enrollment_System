@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { DocumentType, VerificationStatus } from "@prisma/client";
 import { DocumentUpload } from "../../../../components/DocumentUpload";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  DocumentType,
+  VerificationStatus,
+  documentLabels,
+  requiredDocuments,
+} from "@/app/constants/documents";
 
 interface Document {
   id: string;
@@ -28,19 +33,7 @@ export default function DocumentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const requiredDocuments: DocumentType[] = [
-    "TOR",
-    "BIRTH_CERTIFICATE",
-    "GRADES",
-    "CLEARANCE",
-  ];
-
-  const documentLabels: Record<DocumentType, string> = {
-    TOR: "Transcript of Records",
-    BIRTH_CERTIFICATE: "Birth Certificate",
-    GRADES: "Previous School Grades",
-    CLEARANCE: "School Clearance",
-  };
+  // Using requiredDocuments and documentLabels from constants
 
   useEffect(() => {
     fetchProfile();
@@ -67,6 +60,13 @@ export default function DocumentsPage() {
     formData.append("file", file);
     formData.append("documentType", documentType);
 
+    console.log("Uploading document:", {
+      type: documentType,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
+
     try {
       const response = await fetch("/api/documents", {
         method: "POST",
@@ -74,10 +74,18 @@ export default function DocumentsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to upload document");
+        const errorData = await response.json();
+        console.error("Document upload API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        throw new Error(errorData.error || "Failed to upload document");
       }
 
       const newDocument = await response.json();
+      console.log("Document uploaded successfully:", newDocument);
+
       setProfile((prev) =>
         prev
           ? {
@@ -155,6 +163,16 @@ export default function DocumentsPage() {
 
   return (
     <div className="container py-6 space-y-6">
+      {/* Document Upload Suspended Notice */}
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Document Uploads Suspended</AlertTitle>
+        <AlertDescription>
+          Document uploads are currently suspended. Please contact the
+          administration for more information.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
           <CardTitle>Document Verification Status</CardTitle>
@@ -224,8 +242,8 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      {profile?.isVerified ? (
-        <Card className="border-green-200 bg-green-50">
+      {profile?.isVerified && (
+        <Card className="border-green-200 bg-green-50 mb-6">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-full">
@@ -244,23 +262,57 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {requiredDocuments.map((type) => {
-            const currentDocument = documents.find((doc) => doc.type === type);
-            return (
-              <DocumentUpload
-                key={type}
-                documentType={type}
-                documentLabel={documentLabels[type]}
-                currentDocument={currentDocument}
-                onUpload={(file) => handleUpload(type, file)}
-                onDelete={handleDelete}
-              />
-            );
-          })}
-        </div>
       )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {requiredDocuments.map((type) => {
+          // If student is verified but doesn't have this document, create a verified placeholder
+          let currentDocument = documents.find((doc) => doc.type === type);
+
+          // If student is verified, ensure all documents show as verified
+          if (profile?.isVerified) {
+            if (currentDocument) {
+              // Ensure existing document shows as verified
+              currentDocument = {
+                ...currentDocument,
+                status: "VERIFIED",
+                verificationMessage:
+                  "Automatically verified because student account is verified",
+              };
+            } else {
+              // For missing documents when student is verified, we don't need to show upload option
+              // Just show that it's not needed
+              currentDocument = {
+                id: `auto-verified-${type}`,
+                type: type,
+                fileUrl: "",
+                status: "VERIFIED",
+                verificationMessage:
+                  "Document not required - student account is already verified",
+              };
+            }
+          }
+
+          return (
+            <DocumentUpload
+              key={type}
+              documentType={type}
+              documentLabel={documentLabels[type]}
+              currentDocument={currentDocument}
+              onUpload={
+                profile?.isVerified
+                  ? undefined
+                  : (file) => handleUpload(type, file)
+              }
+              onDelete={
+                profile?.isVerified || !currentDocument
+                  ? undefined
+                  : handleDelete
+              }
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

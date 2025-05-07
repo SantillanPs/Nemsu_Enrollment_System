@@ -62,29 +62,31 @@ model Application {
 }
 
 model Document {
-  id            String       @id @default(cuid())
-  type          String
-  fileUrl       String
-  status        String       @default("PENDING")
-  profileId     String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  applicationId String?
-  profile       Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  Application   Application? @relation(fields: [applicationId], references: [id])
+  id                  String       @id @default(cuid())
+  type                String
+  fileUrl             String
+  status              String       @default("PENDING")
+  profileId           String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  applicationId       String?
+  verificationMessage String?
+  profile             Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  Application         Application? @relation(fields: [applicationId], references: [id])
 
   @@index([profileId])
 }
 
 model StudentDocument {
-  id        String   @id @default(cuid())
-  type      String
-  fileUrl   String
-  status    String   @default("PENDING")
-  profileId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  type                String
+  fileUrl             String
+  status              String   @default("PENDING")
+  profileId           String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  verificationMessage String?
+  profile             Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
 }

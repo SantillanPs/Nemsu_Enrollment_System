@@ -79,10 +79,12 @@ export default function AvailableCourses() {
     isVerified: boolean;
     pendingDocuments: string[];
     hasAllDocuments: boolean;
+    profileMissing?: boolean;
   }>({
     isVerified: false,
     pendingDocuments: [],
     hasAllDocuments: false,
+    profileMissing: false,
   });
   const { toast } = useToast();
 
@@ -94,19 +96,35 @@ export default function AvailableCourses() {
 
   const fetchVerificationStatus = async () => {
     try {
+      console.log("Fetching student verification status...");
       const response = await fetch("/api/student/verification-status");
+
       if (!response.ok) {
-        throw new Error("Failed to fetch verification status");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error response:", response.status, errorData);
+        throw new Error(
+          errorData.error ||
+            `Failed to fetch verification status (${response.status})`
+        );
       }
+
       const data = await response.json();
+      console.log("Verification status data:", data);
       setVerificationStatus(data);
     } catch (error) {
       console.error("Error fetching verification status:", error);
+      toast({
+        title: "Warning",
+        description:
+          "Unable to verify your account status. Some features may be limited.",
+        variant: "destructive",
+      });
       // Default to not verified if there's an error
       setVerificationStatus({
         isVerified: false,
         pendingDocuments: [],
         hasAllDocuments: false,
+        profileMissing: true,
       });
     }
   };
@@ -480,7 +498,15 @@ export default function AvailableCourses() {
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800">Account Not Verified</AlertTitle>
           <AlertDescription className="text-red-700">
-            {!verificationStatus.hasAllDocuments ? (
+            {verificationStatus.profileMissing ? (
+              <>
+                Your profile information is incomplete. Please visit your{" "}
+                <a href="/student/profile" className="underline font-medium">
+                  Profile page
+                </a>{" "}
+                to complete your profile setup before enrolling in courses.
+              </>
+            ) : !verificationStatus.hasAllDocuments ? (
               <>
                 You need to upload all required documents before you can enroll
                 in courses. Please visit your{" "}

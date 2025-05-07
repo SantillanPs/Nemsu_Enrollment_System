@@ -319,6 +319,17 @@ export default function AdminDashboard() {
             </div>
           </Button>
         </Link>
+        <Link href="/admin/students" className="w-full sm:w-auto">
+          <Button className="bg-gradient-to-r from-green-600 to-teal-700 hover:from-green-700 hover:to-teal-800 px-6 py-6 rounded-xl shadow-md w-full">
+            <Users className="mr-3 h-5 w-5" />
+            <div>
+              <div className="font-semibold">Manage Students</div>
+              <div className="text-xs text-green-100">
+                Verify student accounts
+              </div>
+            </div>
+          </Button>
+        </Link>
         <Link href="/admin/faculty" className="w-full sm:w-auto">
           <Button
             variant="outline"

@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { VerificationStatus } from "@prisma/client";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || !["FACULTY", "ADMIN"].includes(session.user.role)) {
+    const session = await getServerSession();
+    if (
+      !session?.user?.role ||
+      !["FACULTY", "ADMIN"].includes(session.user.role)
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

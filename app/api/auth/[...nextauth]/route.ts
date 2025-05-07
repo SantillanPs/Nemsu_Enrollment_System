@@ -7,6 +7,7 @@ import { isSystemSuperAdmin } from "@/lib/utils/system-admin";
 declare module "next-auth" {
   interface Session {
     user: {
+      id?: string;
       role?: string;
       isSystemUser?: boolean;
       isVerified?: boolean;
@@ -14,6 +15,7 @@ declare module "next-auth" {
   }
 
   interface User {
+    id: string;
     role?: string;
     isSystemUser?: boolean;
     isVerified?: boolean;
@@ -81,6 +83,7 @@ const handler = NextAuth({
         token.role = user.role;
         token.isSystemUser = user.isSystemUser;
         token.isVerified = user.isVerified;
+        token.id = user.id;
       }
       return token;
     },
@@ -89,6 +92,7 @@ const handler = NextAuth({
         session.user.role = token.role as string;
         session.user.isSystemUser = token.isSystemUser as boolean;
         session.user.isVerified = token.isVerified as boolean;
+        session.user.id = token.id as string;
       }
       return session;
     },

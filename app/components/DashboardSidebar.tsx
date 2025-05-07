@@ -23,6 +23,7 @@ import {
   Server,
   UserPlus,
   SwitchCamera,
+  CheckCircle,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -32,6 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define the navigation item interface
 interface NavigationItem {
@@ -57,13 +64,18 @@ const navigationItems: Record<string, NavigationItem[]> = {
       href: "/faculty/available-courses",
       icon: PlusSquare,
     },
-
+    { name: "Verify Students", href: "/faculty/students", icon: Users },
     { name: "Student Documents", href: "/faculty/documents", icon: FileText },
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
     { name: "Manage Courses", href: "/admin/courses", icon: BookOpen },
     { name: "Faculty Management", href: "/admin/faculty", icon: Users },
+    {
+      name: "Student Management",
+      href: "/admin/students",
+      icon: GraduationCap,
+    },
     { name: "Create Course", href: "/admin/create-course", icon: PlusSquare },
     {
       name: "Enrollment Periods",
@@ -247,9 +259,20 @@ export function DashboardSidebar({
             </span>
           </div>
           <div>
-            <p className="text-sm font-medium">
-              {session?.user?.name || "User"}
-            </p>
+            <div className="flex items-center">
+              <p className="text-sm font-medium">
+                {session?.user?.name || "User"}
+              </p>
+              {/* Show verification badge for verified students */}
+              {effectiveRole === "student" && session?.user?.isVerified && (
+                <div className="ml-2 flex items-center">
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                    <CheckCircle className="mr-1 h-3 w-3" />
+                    Verified
+                  </span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
               {hasRoleAccess(userRole, "SUPER_ADMIN") && activeSidebar && (
@@ -307,7 +330,27 @@ export function DashboardSidebar({
                   )}
                 />
               )}
-              {item.name}
+              <span className="flex items-center">
+                {item.name}
+                {/* Show verification badge in navigation for verified students */}
+                {effectiveRole === "student" &&
+                  session?.user?.isVerified &&
+                  item.name === "Dashboard" && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="ml-2 inline-flex items-center justify-center rounded-full bg-green-100 p-1">
+                            <Shield className="h-3 w-3 text-green-600" />
+                            <span className="sr-only">Verified Student</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Verified Student</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+              </span>
             </Link>
           );
         })}

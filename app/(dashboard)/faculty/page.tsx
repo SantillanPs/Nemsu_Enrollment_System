@@ -124,6 +124,45 @@ export default function FacultyDashboard() {
         </Card>
       </div>
 
+      <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+        <Link href="/faculty/courses" className="w-full sm:w-auto">
+          <Button className="bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 px-6 py-6 rounded-xl shadow-md w-full">
+            <BookOpen className="mr-3 h-5 w-5" />
+            <div>
+              <div className="font-semibold">My Courses</div>
+              <div className="text-xs text-orange-100">
+                View and manage your courses
+              </div>
+            </div>
+          </Button>
+        </Link>
+        <Link href="/faculty/students" className="w-full sm:w-auto">
+          <Button className="bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800 px-6 py-6 rounded-xl shadow-md w-full">
+            <Users className="mr-3 h-5 w-5" />
+            <div>
+              <div className="font-semibold">Verify Students</div>
+              <div className="text-xs text-amber-100">
+                Manage student verification
+              </div>
+            </div>
+          </Button>
+        </Link>
+        <Link href="/faculty/documents" className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            className="px-6 py-6 rounded-xl border-2 border-amber-200 text-amber-700 hover:bg-amber-50 shadow-md w-full"
+          >
+            <CheckSquare className="mr-3 h-5 w-5" />
+            <div>
+              <div className="font-semibold">Student Documents</div>
+              <div className="text-xs text-amber-500">
+                Review student documents
+              </div>
+            </div>
+          </Button>
+        </Link>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="md:col-span-2">
           <CardHeader>
