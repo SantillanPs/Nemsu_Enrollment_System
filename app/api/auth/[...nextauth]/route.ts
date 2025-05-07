@@ -9,12 +9,14 @@ declare module "next-auth" {
     user: {
       role?: string;
       isSystemUser?: boolean;
+      isVerified?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: string;
     isSystemUser?: boolean;
+    isVerified?: boolean;
   }
 }
 
@@ -58,6 +60,7 @@ const handler = NextAuth({
           email: user.email,
           role: user.role,
           isSystemUser: user.isSystemUser,
+          isVerified: user.profile.isVerified,
           name: `${user.profile.firstName} ${user.profile.lastName}`,
         };
       },
@@ -77,6 +80,7 @@ const handler = NextAuth({
       if (user) {
         token.role = user.role;
         token.isSystemUser = user.isSystemUser;
+        token.isVerified = user.isVerified;
       }
       return token;
     },
@@ -84,6 +88,7 @@ const handler = NextAuth({
       if (session.user) {
         session.user.role = token.role as string;
         session.user.isSystemUser = token.isSystemUser as boolean;
+        session.user.isVerified = token.isVerified as boolean;
       }
       return session;
     },

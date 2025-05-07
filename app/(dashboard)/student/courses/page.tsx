@@ -59,7 +59,6 @@ export default function AvailableCourses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
-  // const [enrollmentSuccess, setEnrollmentSuccess] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrollingCourses, setEnrollingCourses] = useState<string[]>([]);
@@ -76,12 +75,41 @@ export default function AvailableCourses() {
     currentPeriod: null,
     nextPeriod: null,
   });
+  const [verificationStatus, setVerificationStatus] = useState<{
+    isVerified: boolean;
+    pendingDocuments: string[];
+    hasAllDocuments: boolean;
+  }>({
+    isVerified: false,
+    pendingDocuments: [],
+    hasAllDocuments: false,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
     fetchEnrollmentStatus();
+    fetchVerificationStatus();
   }, []);
+
+  const fetchVerificationStatus = async () => {
+    try {
+      const response = await fetch("/api/student/verification-status");
+      if (!response.ok) {
+        throw new Error("Failed to fetch verification status");
+      }
+      const data = await response.json();
+      setVerificationStatus(data);
+    } catch (error) {
+      console.error("Error fetching verification status:", error);
+      // Default to not verified if there's an error
+      setVerificationStatus({
+        isVerified: false,
+        pendingDocuments: [],
+        hasAllDocuments: false,
+      });
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -446,6 +474,47 @@ export default function AvailableCourses() {
 
   return (
     <div className="container mx-auto p-6">
+      {/* Verification Status Alert */}
+      {!verificationStatus.isVerified && (
+        <Alert className="bg-red-50 border-red-200 mb-6">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800">Account Not Verified</AlertTitle>
+          <AlertDescription className="text-red-700">
+            {!verificationStatus.hasAllDocuments ? (
+              <>
+                You need to upload all required documents before you can enroll
+                in courses. Please visit your{" "}
+                <a
+                  href="/student/profile/documents"
+                  className="underline font-medium"
+                >
+                  Documents page
+                </a>{" "}
+                to upload the missing documents.
+              </>
+            ) : verificationStatus.pendingDocuments.length > 0 ? (
+              <>
+                Your documents are still being reviewed by faculty. You will be
+                able to enroll once all documents are verified. Check your{" "}
+                <a
+                  href="/student/profile/documents"
+                  className="underline font-medium"
+                >
+                  Documents page
+                </a>{" "}
+                for status updates.
+              </>
+            ) : (
+              <>
+                Your account verification is pending. Please contact an
+                administrator if you believe this is an error.
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Enrollment Period Alerts */}
       {!enrollmentStatus.isEnrollmentOpen && (
         <Alert
           className={
@@ -495,24 +564,28 @@ export default function AvailableCourses() {
         </Alert>
       )}
 
-      {enrollmentStatus.isEnrollmentOpen && enrollmentStatus.currentPeriod && (
-        <Alert className="bg-green-50 border-green-200 mb-6">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Enrollment is Open</AlertTitle>
-          <AlertDescription className="text-green-700">
-            The current enrollment period ({enrollmentStatus.currentPeriod.name}
-            ) is active until{" "}
-            {new Date(
-              enrollmentStatus.currentPeriod.endDate
-            ).toLocaleDateString()}{" "}
-            at{" "}
-            {new Date(
-              enrollmentStatus.currentPeriod.endDate
-            ).toLocaleTimeString()}
-            .
-          </AlertDescription>
-        </Alert>
-      )}
+      {enrollmentStatus.isEnrollmentOpen &&
+        enrollmentStatus.currentPeriod &&
+        verificationStatus.isVerified && (
+          <Alert className="bg-green-50 border-green-200 mb-6">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">
+              Enrollment is Open
+            </AlertTitle>
+            <AlertDescription className="text-green-700">
+              The current enrollment period (
+              {enrollmentStatus.currentPeriod.name}) is active until{" "}
+              {new Date(
+                enrollmentStatus.currentPeriod.endDate
+              ).toLocaleDateString()}{" "}
+              at{" "}
+              {new Date(
+                enrollmentStatus.currentPeriod.endDate
+              ).toLocaleTimeString()}
+              .
+            </AlertDescription>
+          </Alert>
+        )}
 
       <div className="bg-white dark:bg-slate-900 border rounded-lg shadow-sm p-6 mb-8">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -524,6 +597,7 @@ export default function AvailableCourses() {
             onClick={handleEnrollAll}
             disabled={
               !enrollmentStatus.isEnrollmentOpen ||
+              !verificationStatus.isVerified ||
               enrollingCourses.length > 0 ||
               courses.length === 0
             }
@@ -678,6 +752,7 @@ export default function AvailableCourses() {
                         onClick={() => handleBulkEnrollment(groupKey)}
                         disabled={
                           !enrollmentStatus.isEnrollmentOpen ||
+                          !verificationStatus.isVerified ||
                           selectedInGroup.length === 0 ||
                           enrollingCourses.length > 0
                         }
@@ -1002,6 +1077,7 @@ export default function AvailableCourses() {
                               onClick={() => handleEnrollment(course.id)}
                               disabled={
                                 !enrollmentStatus.isEnrollmentOpen ||
+                                !verificationStatus.isVerified ||
                                 isEnrolling ||
                                 (course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
@@ -1014,6 +1090,8 @@ export default function AvailableCourses() {
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   Enrolling...
                                 </>
+                              ) : !verificationStatus.isVerified ? (
+                                "Account Not Verified"
                               ) : course.prerequisites.length > 0 &&
                                 !course.prerequisites.every((p) =>
                                   completedCourseIds.includes(p.id)

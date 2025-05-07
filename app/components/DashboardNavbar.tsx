@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  UserRole,
+  hasRoleAccess,
+  getEffectiveRole,
+} from "@/lib/utils/role-check";
 
 interface DashboardNavbarProps {
   children?: React.ReactNode;
@@ -25,12 +30,15 @@ export function DashboardNavbar({
   const { data: session } = useSession();
 
   // Default to student if role is not available
-  const userRole = session?.user?.role?.toLowerCase() || "student";
+  const userRole = session?.user?.role?.toLowerCase() || UserRole.STUDENT;
 
   // For super admins, determine the effective role based on the active sidebar
-  const isSuperAdmin = userRole === "super_admin";
-  const effectiveRole =
-    isSuperAdmin && activeSidebar ? activeSidebar : userRole;
+  const isUserSuperAdmin = hasRoleAccess(userRole, "SUPER_ADMIN");
+  const effectiveRole = getEffectiveRole(userRole, activeSidebar);
+
+  // Check if the user is a verified student
+  const isVerifiedStudent =
+    userRole === UserRole.STUDENT && session?.user?.isVerified;
 
   // Role-specific colors
   const roleColors = {
@@ -76,7 +84,7 @@ export function DashboardNavbar({
             </span>
 
             {/* Show super admin badge when viewing other dashboards */}
-            {isSuperAdmin && activeSidebar && (
+            {isUserSuperAdmin && activeSidebar && (
               <Badge
                 variant="outline"
                 className={`flex items-center gap-1 ${
@@ -91,6 +99,17 @@ export function DashboardNavbar({
               >
                 <Shield className="h-3 w-3" />
                 <span className="text-xs">Super Admin</span>
+              </Badge>
+            )}
+
+            {/* Show verified badge for verified students */}
+            {isVerifiedStudent && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200"
+              >
+                <Shield className="h-3 w-3" />
+                <span className="text-xs">Verified</span>
               </Badge>
             )}
           </div>

@@ -39,6 +39,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 interface User {
   id: string;
@@ -64,7 +65,10 @@ export default function SuperAdminUsersPage() {
 
   // Redirect if not a super admin
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+    if (
+      status === "authenticated" &&
+      !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+    ) {
       router.push("/");
     }
   }, [session, status, router]);
@@ -88,7 +92,10 @@ export default function SuperAdminUsersPage() {
       }
     };
 
-    if (status === "authenticated" && session?.user?.role === "SUPER_ADMIN") {
+    if (
+      status === "authenticated" &&
+      hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+    ) {
       fetchUsers();
     }
   }, [session, status]);
@@ -145,7 +152,10 @@ export default function SuperAdminUsersPage() {
     );
   }
 
-  if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+  if (
+    status === "authenticated" &&
+    !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+  ) {
     return null; // Will redirect in useEffect
   }
 
@@ -166,10 +176,7 @@ export default function SuperAdminUsersPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Select
-            value={roleFilter}
-            onValueChange={setRoleFilter}
-          >
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-full md:w-40">
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>

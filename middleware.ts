@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
+import { UserRole, hasRoleAccess } from "@/lib/utils/role-check";
 
 // Extend the JWT type
 declare module "next-auth/jwt" {
@@ -22,7 +23,7 @@ export async function middleware(request: NextRequest) {
       let role = token.role?.toLowerCase() || "student";
 
       // Format the role for URL (replace underscore with hyphen)
-      if (role === "super_admin") {
+      if (role === UserRole.SUPER_ADMIN) {
         role = "super-admin";
       } else {
         role = role.replace("_", "-");
@@ -51,21 +52,27 @@ export async function middleware(request: NextRequest) {
 
     // Format the role for URL consistency (replace underscore with hyphen)
     let formattedRole = role;
-    if (role === "super_admin") {
+    if (role === UserRole.SUPER_ADMIN) {
       formattedRole = "super-admin";
     } else if (role) {
       formattedRole = role.replace("_", "-");
     }
 
     // Super admin specific routes check
-    if (requestedPath === "super-admin" && role !== "super_admin") {
+    if (
+      requestedPath === "super-admin" &&
+      !hasRoleAccess(role || "", "SUPER_ADMIN")
+    ) {
       // Only super admins can access super admin routes
       return NextResponse.redirect(new URL(`/${formattedRole}`, request.url));
     }
 
     // Check if user has access to the requested role's routes
     // SUPER_ADMIN can access all routes
-    if (role !== "super_admin" && formattedRole !== requestedPath) {
+    if (
+      !hasRoleAccess(role || "", "SUPER_ADMIN") &&
+      formattedRole !== requestedPath
+    ) {
       // Redirect to their appropriate dashboard if trying to access wrong role's routes
       return NextResponse.redirect(new URL(`/${formattedRole}`, request.url));
     }

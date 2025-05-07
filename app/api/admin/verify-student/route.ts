@@ -10,7 +10,7 @@ import { hasRoleAccess } from "@/lib/utils/role-check";
 export async function POST(request: Request) {
   try {
     const session = await getServerSession();
-    
+
     // Check if user is authenticated
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -64,24 +64,47 @@ export async function POST(request: Request) {
       );
     }
 
+    // Determine the verification status (default to true if not explicitly set to false)
+    const verificationStatus = isVerified !== false;
+
     // Update the profile verification status
     const updatedProfile = await prisma.profile.update({
       where: { id: user.profile.id },
-      data: { isVerified: isVerified !== false }, // Default to true if not explicitly set to false
+      data: { isVerified: verificationStatus },
     });
+
+    // If the student is being verified, automatically verify all their documents
+    if (verificationStatus) {
+      // Update all documents to verified status
+      await prisma.document.updateMany({
+        where: {
+          profileId: user.profile.id,
+          status: { not: "VERIFIED" }, // Only update non-verified documents
+        },
+        data: {
+          status: "VERIFIED",
+          verificationMessage:
+            "Automatically verified because student account is verified by admin",
+        },
+      });
+
+      console.log(
+        `All documents for student ${user.email} (${user.id}) have been automatically verified.`
+      );
+    }
 
     // Log the verification action
     console.log(
       `Student ${user.email} (${user.id}) ${
-        isVerified !== false ? "verified" : "unverified"
+        verificationStatus ? "verified" : "unverified"
       } by admin ${currentUser.email} (${currentUser.id})`
     );
 
     return NextResponse.json({
       success: true,
-      message: `Student ${
-        isVerified !== false ? "verified" : "unverified"
-      } successfully`,
+      message: verificationStatus
+        ? `Student verified successfully. All documents have been automatically verified.`
+        : `Student unverified successfully.`,
       profile: updatedProfile,
     });
   } catch (error) {

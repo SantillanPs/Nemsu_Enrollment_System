@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { UserRole } from "@/lib/utils/role-check";
 
 const prisma = new PrismaClient();
 
@@ -23,11 +24,14 @@ export async function ensureSuperAdminExists() {
 
     if (existingAdmin) {
       // If the admin exists but isn't a SUPER_ADMIN or system user, update it
-      if (existingAdmin.role !== "SUPER_ADMIN" || !existingAdmin.isSystemUser) {
+      if (
+        existingAdmin.role !== UserRole.SUPER_ADMIN.toUpperCase() ||
+        !existingAdmin.isSystemUser
+      ) {
         await prisma.user.update({
           where: { id: existingAdmin.id },
           data: {
-            role: "SUPER_ADMIN",
+            role: UserRole.SUPER_ADMIN.toUpperCase(),
             isSystemUser: true,
           },
         });
@@ -43,7 +47,7 @@ export async function ensureSuperAdminExists() {
       data: {
         email: SUPER_ADMIN_EMAIL,
         password: hashedPassword,
-        role: "SUPER_ADMIN",
+        role: UserRole.SUPER_ADMIN.toUpperCase(),
         isSystemUser: true,
         profile: {
           create: {

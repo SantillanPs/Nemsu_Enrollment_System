@@ -352,18 +352,28 @@ export default function EnrollmentPeriodsPage() {
 
     try {
       setIsSubmitting(true);
+      console.log(
+        `Attempting to delete enrollment period: ${selectedPeriod.id}`
+      );
 
       const response = await fetch(
         `/api/enrollment-periods/${selectedPeriod.id}`,
         {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
+        console.error("Delete response error:", data);
         throw new Error(data.error || "Failed to delete enrollment period");
       }
+
+      console.log("Delete response success:", data);
 
       toast({
         title: "Success",
@@ -373,6 +383,7 @@ export default function EnrollmentPeriodsPage() {
       setShowDeleteDialog(false);
       fetchEnrollmentPeriods();
     } catch (err) {
+      console.error("Error in handleConfirmDelete:", err);
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
 
@@ -771,7 +782,14 @@ export default function EnrollmentPeriodsPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!isSubmitting) {
+            setShowDeleteDialog(open);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
@@ -787,6 +805,17 @@ export default function EnrollmentPeriodsPage() {
                 <p className="text-sm text-gray-500 mt-1">
                   {format(new Date(selectedPeriod.startDate), "PPP")} to{" "}
                   {format(new Date(selectedPeriod.endDate), "PPP")}
+                </p>
+                <p className="text-sm mt-2">
+                  <span
+                    className={`font-medium ${
+                      selectedPeriod.isActive
+                        ? "text-green-600"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    Status: {selectedPeriod.isActive ? "Active" : "Inactive"}
+                  </span>
                 </p>
               </div>
             )}

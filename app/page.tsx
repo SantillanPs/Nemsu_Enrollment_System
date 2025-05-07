@@ -89,19 +89,16 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-grow">
-        {/* Hero Section with Video Background */}
+        {/* Hero Section with Image Background */}
         <section className="relative h-[90vh] flex items-center justify-center text-white overflow-hidden">
           <div className="absolute inset-0 bg-black/50 z-10"></div>
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
+          <Image
+            src="/university.jpg"
+            alt="North Eastern Mindanao State University Campus"
+            fill
+            priority
             className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="/university-campus.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          />
 
           <div className="container mx-auto px-4 relative z-20">
             <div className="max-w-2xl mx-auto text-center">

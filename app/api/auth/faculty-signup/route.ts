@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { validateInvitationToken, markInvitationAsAccepted } from "@/lib/utils/invitation";
+import {
+  validateInvitationToken,
+  markInvitationAsAccepted,
+} from "@/lib/utils/invitation";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    console.log("Received faculty signup data:", { ...data, password: "[REDACTED]" });
+    console.log("Received faculty signup data:", {
+      ...data,
+      password: "[REDACTED]",
+    });
 
     const {
       email,
@@ -41,12 +47,21 @@ export async function POST(request: Request) {
     }
 
     // Validate the invitation token
-    const invitation = await validateInvitationToken(token);
-    if (!invitation) {
-      console.error("Invalid or expired invitation token");
+    let invitation;
+    try {
+      invitation = await validateInvitationToken(token);
+      if (!invitation) {
+        console.error("Invalid or expired invitation token");
+        return NextResponse.json(
+          { error: "Invalid or expired invitation token" },
+          { status: 400 }
+        );
+      }
+    } catch (error) {
+      console.error("Error validating invitation token:", error);
       return NextResponse.json(
-        { error: "Invalid or expired invitation token" },
-        { status: 400 }
+        { error: "Error validating invitation token. Please try again." },
+        { status: 500 }
       );
     }
 
@@ -113,7 +128,17 @@ export async function POST(request: Request) {
     });
 
     // Mark the invitation as accepted
-    await markInvitationAsAccepted(token);
+    try {
+      const result = await markInvitationAsAccepted(token);
+      if (!result) {
+        console.warn(
+          "Failed to mark invitation as accepted, but user was created"
+        );
+      }
+    } catch (error) {
+      console.error("Error marking invitation as accepted:", error);
+      // Continue anyway since the user was created successfully
+    }
 
     // Remove password from response
     const { password: _, ...safeUser } = user;

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   Card,
   CardContent,
@@ -8,9 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Shield,
+} from "lucide-react";
 
 export default function StudentDashboard() {
+  const { data: session } = useSession();
+  const isVerified = session?.user?.isVerified;
+
   // Mock data for student dashboard
   const enrollmentRequests = [
     {
@@ -52,6 +64,54 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Verification Status Card */}
+      {isVerified ? (
+        <Card className="border-green-200 bg-green-50 mb-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <Shield className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-green-800">
+                  Verified Student Account
+                </h3>
+                <p className="text-sm text-green-700">
+                  Your account is verified. You can enroll in courses and all
+                  your documents are automatically verified.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-yellow-200 bg-yellow-50 mb-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-yellow-100 p-2 rounded-full">
+                <AlertCircle className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-yellow-800">
+                  Account Verification Required
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  Your account needs to be verified before you can enroll in
+                  courses. Please visit the{" "}
+                  <Link
+                    href="/student/profile/documents"
+                    className="underline font-medium"
+                  >
+                    Documents page
+                  </Link>{" "}
+                  to upload your required documents.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

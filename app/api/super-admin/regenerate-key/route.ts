@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { validateSecretKey, updateSecretKey } from "@/config/superadmin";
 import crypto from "crypto";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 /**
  * API route to regenerate the super admin secret key
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
         where: { email: session.user.email },
       });
 
-      if (user && user.role === "SUPER_ADMIN") {
+      if (user && hasRoleAccess(user.role, "SUPER_ADMIN")) {
         isAuthorized = true;
       }
     }

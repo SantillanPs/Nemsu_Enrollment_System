@@ -24,6 +24,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export default function SuperAdminSystemPage() {
   const { data: session, status } = useSession();
@@ -42,7 +43,10 @@ export default function SuperAdminSystemPage() {
 
   // Redirect if not a super admin
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+    if (
+      status === "authenticated" &&
+      !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+    ) {
       router.push("/");
     }
   }, [session, status, router]);
@@ -56,7 +60,7 @@ export default function SuperAdminSystemPage() {
     ) {
       return;
     }
-    
+
     alert("System restart initiated. This is a simulated action.");
   };
 
@@ -69,7 +73,7 @@ export default function SuperAdminSystemPage() {
     ) {
       return;
     }
-    
+
     alert("Database maintenance initiated. This is a simulated action.");
   };
 
@@ -81,7 +85,10 @@ export default function SuperAdminSystemPage() {
     );
   }
 
-  if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+  if (
+    status === "authenticated" &&
+    !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+  ) {
     return null; // Will redirect in useEffect
   }
 
@@ -182,27 +189,33 @@ export default function SuperAdminSystemPage() {
           {/* Resource Usage */}
           <div className="mt-6 space-y-4">
             <h3 className="font-medium text-lg">Resource Usage</h3>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">CPU Usage</span>
-                <span className="text-sm text-gray-500">{systemStats.cpuUsage}%</span>
+                <span className="text-sm text-gray-500">
+                  {systemStats.cpuUsage}%
+                </span>
               </div>
               <Progress value={systemStats.cpuUsage} className="h-2" />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Memory Usage</span>
-                <span className="text-sm text-gray-500">{systemStats.memoryUsage}%</span>
+                <span className="text-sm text-gray-500">
+                  {systemStats.memoryUsage}%
+                </span>
               </div>
               <Progress value={systemStats.memoryUsage} className="h-2" />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Disk Usage</span>
-                <span className="text-sm text-gray-500">{systemStats.diskUsage}%</span>
+                <span className="text-sm text-gray-500">
+                  {systemStats.diskUsage}%
+                </span>
               </div>
               <Progress value={systemStats.diskUsage} className="h-2" />
             </div>
@@ -219,9 +232,7 @@ export default function SuperAdminSystemPage() {
               <RefreshCw className="h-5 w-5 mr-2 text-amber-500" />
               System Restart
             </CardTitle>
-            <CardDescription>
-              Restart the application server
-            </CardDescription>
+            <CardDescription>Restart the application server</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">

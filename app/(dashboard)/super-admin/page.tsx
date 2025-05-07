@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export default function SuperAdminDashboard() {
   const { data: session, status } = useSession();
@@ -50,7 +51,10 @@ export default function SuperAdminDashboard() {
 
   // Redirect if not a super admin
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+    if (
+      status === "authenticated" &&
+      !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+    ) {
       router.push("/");
     }
   }, [session, status, router]);
@@ -82,7 +86,10 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+  if (
+    status === "authenticated" &&
+    !hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+  ) {
     return null; // Will redirect in useEffect
   }
 

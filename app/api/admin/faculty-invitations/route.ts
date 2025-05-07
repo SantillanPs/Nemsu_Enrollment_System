@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { createFacultyInvitation, getInvitationUrl } from "@/lib/utils/invitation";
+import {
+  createFacultyInvitation,
+  getInvitationUrl,
+} from "@/lib/utils/invitation";
 import { z } from "zod";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 // Schema for invitation creation
 const invitationSchema = z.object({
@@ -28,8 +32,8 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is an admin
-    if (user.role !== "ADMIN") {
+    // Check if user is an admin or super admin
+    if (!hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only administrators can access this endpoint" },
         { status: 403 }
@@ -42,9 +46,9 @@ export async function GET() {
     });
 
     // Add invitation URLs to the response
-    const invitationsWithUrls = invitations.map(invitation => ({
+    const invitationsWithUrls = invitations.map((invitation) => ({
       ...invitation,
-      invitationUrl: getInvitationUrl(invitation.token)
+      invitationUrl: getInvitationUrl(invitation.token),
     }));
 
     return NextResponse.json(invitationsWithUrls);
@@ -75,8 +79,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is an admin
-    if (user.role !== "ADMIN") {
+    // Check if user is an admin or super admin
+    if (!hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only administrators can create faculty invitations" },
         { status: 403 }
@@ -109,11 +113,20 @@ export async function POST(request: Request) {
     }
 
     // Create the invitation
-    const invitation = await createFacultyInvitation(
-      email,
-      user.id,
-      expirationDays
-    );
+    let invitation;
+    try {
+      invitation = await createFacultyInvitation(
+        email,
+        user.id,
+        expirationDays
+      );
+    } catch (error) {
+      console.error("Error creating faculty invitation:", error);
+      return NextResponse.json(
+        { error: "Failed to create faculty invitation. Please try again." },
+        { status: 500 }
+      );
+    }
 
     // Generate the invitation URL
     const invitationUrl = getInvitationUrl(invitation.token);

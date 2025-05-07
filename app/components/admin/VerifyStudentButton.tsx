@@ -55,11 +55,13 @@ export function VerifyStudentButton({
         throw new Error(data.error || "Failed to update verification status");
       }
 
+      const data = await response.json();
+
       toast({
         title: "Success",
-        description: `Student ${
-          verifyAction ? "verified" : "unverified"
-        } successfully`,
+        description:
+          data.message ||
+          `Student ${verifyAction ? "verified" : "unverified"} successfully`,
         variant: verifyAction ? "default" : "destructive",
       });
 
@@ -125,7 +127,7 @@ export function VerifyStudentButton({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {verifyAction
-                ? "This will verify the student account, allowing them to enroll in courses regardless of document verification status. Are you sure?"
+                ? "This will verify the student account, allowing them to enroll in courses. All their documents will be automatically verified. Are you sure?"
                 : "This will unverify the student account, preventing them from enrolling in courses until they are verified again. Are you sure?"}
             </AlertDialogDescription>
           </AlertDialogHeader>

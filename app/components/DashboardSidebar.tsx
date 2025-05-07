@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
+  UserRole,
+  hasRoleAccess,
+  getEffectiveRole,
+} from "@/lib/utils/role-check";
+import {
   Home,
   BookOpen,
   Users,
@@ -15,7 +20,6 @@ import {
   LogOut,
   Shield,
   Key,
-  Settings,
   Server,
   UserPlus,
   SwitchCamera,
@@ -70,6 +74,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
   super_admin: [
     { name: "Dashboard", href: "/super-admin", icon: Home },
     { name: "User Management", href: "/super-admin/users", icon: Users },
+    { name: "Faculty Management", href: "/super-admin/faculty", icon: Users },
     { name: "System Maintenance", href: "/super-admin/system", icon: Server },
     { name: "Security", href: "/super-admin/security", icon: Shield },
     {
@@ -126,12 +131,11 @@ export function DashboardSidebar({
   };
 
   // Get the user's actual role
-  const userRole = session?.user?.role?.toLowerCase() || "student";
+  const userRole = session?.user?.role?.toLowerCase() || UserRole.STUDENT;
 
   // For super admins, allow switching between sidebars
   // For other users, just use their role
-  const effectiveRole =
-    userRole === "super_admin" && activeSidebar ? activeSidebar : userRole;
+  const effectiveRole = getEffectiveRole(userRole, activeSidebar);
 
   // Define role-specific color themes
   const roleThemes = {
@@ -248,7 +252,7 @@ export function DashboardSidebar({
             </p>
             <p className="text-xs text-muted-foreground">
               {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
-              {userRole === "super_admin" && activeSidebar && (
+              {hasRoleAccess(userRole, "SUPER_ADMIN") && activeSidebar && (
                 <span
                   className={`ml-1 ${
                     activeSidebar === "student"
@@ -309,12 +313,12 @@ export function DashboardSidebar({
         })}
       </nav>
       {/* Show sidebar switcher only for super admins */}
-      {userRole === "super_admin" && (
+      {hasRoleAccess(userRole, "SUPER_ADMIN") && (
         <div className="p-4 border-t">
           <div className="flex items-center mb-2">
             <SwitchCamera
               className={`h-5 w-5 mr-2 ${
-                userRole === "super_admin" ? "text-red-500" : ""
+                hasRoleAccess(userRole, "SUPER_ADMIN") ? "text-red-500" : ""
               }`}
             />
             <h3 className="font-medium text-gray-700">Switch Dashboard</h3>

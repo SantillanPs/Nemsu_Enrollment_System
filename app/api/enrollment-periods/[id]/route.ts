@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 // Get a specific enrollment period
 export async function GET(
@@ -13,8 +14,20 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Await params before accessing its properties
-    const { id } = await params;
+    // Get user to check role
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user || !hasRoleAccess(user.role, "ADMIN")) {
+      return NextResponse.json(
+        { error: "Only admins can access enrollment periods" },
+        { status: 403 }
+      );
+    }
+
+    // Get the ID from params
+    const id = params.id;
 
     try {
       const enrollmentPeriod = await prisma.enrollmentPeriod.findUnique({
@@ -64,15 +77,15 @@ export async function PATCH(
       where: { email: session.user.email },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only admins can update enrollment periods" },
         { status: 403 }
       );
     }
 
-    // Await params before accessing its properties
-    const { id } = await params;
+    // Get the ID from params
+    const id = params.id;
     const body = await request.json();
     const { name, description, startDate, endDate, isActive } = body;
 
@@ -211,15 +224,15 @@ export async function DELETE(
       where: { email: session.user.email },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !hasRoleAccess(user.role, "ADMIN")) {
       return NextResponse.json(
         { error: "Only admins can delete enrollment periods" },
         { status: 403 }
       );
     }
 
-    // Await params before accessing its properties
-    const { id } = await params;
+    // Get the ID from params
+    const id = params.id;
 
     // Check if enrollment period exists
     const existingPeriod = await prisma.enrollmentPeriod.findUnique({
@@ -234,17 +247,62 @@ export async function DELETE(
     }
 
     try {
+      console.log(`Attempting to delete enrollment period with ID: ${id}`);
+
+      // Check if there are any enrollments associated with this period
+      // This is a safety check, though there's no direct relationship in the schema
+      const now = new Date();
+      const isCurrentlyActive =
+        existingPeriod.isActive &&
+        now >= new Date(existingPeriod.startDate) &&
+        now <= new Date(existingPeriod.endDate);
+
+      if (isCurrentlyActive) {
+        console.warn(`Attempting to delete an active enrollment period: ${id}`);
+        // We'll still allow deletion, but log it as a warning
+      }
+
       // Delete the enrollment period
-      await prisma.enrollmentPeriod.delete({
+      const deletedPeriod = await prisma.enrollmentPeriod.delete({
         where: { id },
       });
+
+      console.log(
+        `Successfully deleted enrollment period: ${id}`,
+        deletedPeriod
+      );
 
       return NextResponse.json({
         success: true,
         message: "Enrollment period deleted successfully",
+        deletedPeriod,
       });
     } catch (error) {
       console.error("Error deleting enrollment period:", error);
+
+      // Provide more specific error messages based on the error type
+      if (error instanceof Error) {
+        // Check for specific Prisma errors
+        if (error.message.includes("Foreign key constraint failed")) {
+          return NextResponse.json(
+            {
+              error:
+                "Cannot delete this enrollment period because it is referenced by other records.",
+              details: error.message,
+            },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json(
+          {
+            error: "Failed to delete enrollment period",
+            details: error.message,
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
         {
           error:

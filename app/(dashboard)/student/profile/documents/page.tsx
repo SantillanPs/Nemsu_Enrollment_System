@@ -183,6 +183,7 @@ export default function DocumentsPage() {
               <AlertTitle>Account Verified</AlertTitle>
               <AlertDescription>
                 Your account has been verified. You can now enroll in courses.
+                All your documents are automatically verified.
               </AlertDescription>
             </Alert>
           ) : hasAllRequiredAndVerified ? (
@@ -223,21 +224,43 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {requiredDocuments.map((type) => {
-          const currentDocument = documents.find((doc) => doc.type === type);
-          return (
-            <DocumentUpload
-              key={type}
-              documentType={type}
-              documentLabel={documentLabels[type]}
-              currentDocument={currentDocument}
-              onUpload={(file) => handleUpload(type, file)}
-              onDelete={handleDelete}
-            />
-          );
-        })}
-      </div>
+      {profile?.isVerified ? (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-green-800">
+                  Documents Automatically Verified
+                </h3>
+                <p className="text-sm text-green-700">
+                  Since your account is verified, all your documents are
+                  automatically verified. You don't need to upload any
+                  additional documents.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {requiredDocuments.map((type) => {
+            const currentDocument = documents.find((doc) => doc.type === type);
+            return (
+              <DocumentUpload
+                key={type}
+                documentType={type}
+                documentLabel={documentLabels[type]}
+                currentDocument={currentDocument}
+                onUpload={(file) => handleUpload(type, file)}
+                onDelete={handleDelete}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

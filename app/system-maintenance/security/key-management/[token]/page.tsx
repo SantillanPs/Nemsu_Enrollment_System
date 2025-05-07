@@ -13,14 +13,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldAlert, CheckCircle, AlertTriangle, Key, Copy, Lock } from "lucide-react";
+import {
+  ShieldAlert,
+  CheckCircle,
+  AlertTriangle,
+  Key,
+  Copy,
+  Lock,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import crypto from "crypto";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 // This is a hash of the special access token - we store the hash, not the token itself
 // The actual token is: maintenance-security-key-8675309
-const VALID_TOKEN_HASH = "5e7f5e4c8f2f1f5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f";
+const VALID_TOKEN_HASH =
+  "5e7f5e4c8f2f1f5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f";
 
 export default function RegenerateKeyPage() {
   const { data: session } = useSession();
@@ -38,29 +47,27 @@ export default function RegenerateKeyPage() {
     // Validate the token in the URL
     const validateAccess = async () => {
       setIsValidating(true);
-      
+
       // Check if user is a SUPER_ADMIN
-      const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
-      
-      if (isSuperAdmin) {
+      if (hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")) {
         setIsAuthorized(true);
         setIsValidating(false);
         return;
       }
-      
+
       // Check if the token in the URL is valid
       const token = params?.token as string;
       if (token) {
         // Hash the token for comparison
-        const hash = crypto.createHash('sha256').update(token).digest('hex');
+        const hash = crypto.createHash("sha256").update(token).digest("hex");
         if (hash === VALID_TOKEN_HASH) {
           setIsAuthorized(true);
         }
       }
-      
+
       setIsValidating(false);
     };
-    
+
     validateAccess();
   }, [params, session]);
 
@@ -134,10 +141,7 @@ export default function RegenerateKeyPage() {
             You do not have permission to access this page.
           </p>
           <div className="mt-8 flex justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => router.push('/')}
-            >
+            <Button variant="outline" onClick={() => router.push("/")}>
               Return to Home
             </Button>
           </div>
@@ -166,7 +170,8 @@ export default function RegenerateKeyPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Warning</AlertTitle>
           <AlertDescription>
-            Regenerating the key will invalidate the previous key. Make sure to save the new key securely.
+            Regenerating the key will invalidate the previous key. Make sure to
+            save the new key securely.
           </AlertDescription>
         </Alert>
 
@@ -174,14 +179,14 @@ export default function RegenerateKeyPage() {
           <CardHeader>
             <CardTitle className="text-xl">Key Regeneration</CardTitle>
             <CardDescription>
-              {session?.user?.role === "SUPER_ADMIN" 
-                ? "As a Super Admin, you can regenerate the key without providing the current key" 
+              {hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN")
+                ? "As a Super Admin, you can regenerate the key without providing the current key"
                 : "Enter the current secret key to generate a new one"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {session?.user?.role !== "SUPER_ADMIN" && (
+              {!hasRoleAccess(session?.user?.role || "", "SUPER_ADMIN") && (
                 <div className="space-y-2">
                   <Label htmlFor="currentSecretKey">Current Secret Key</Label>
                   <Input
@@ -219,13 +224,17 @@ export default function RegenerateKeyPage() {
                 <div className="bg-gray-100 p-2 rounded text-sm font-mono break-all flex-1 mr-2">
                   {newKey}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={copyToClipboard}
                   title="Copy to clipboard"
                 >
-                  {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               <p className="mt-4 text-xs text-red-600">

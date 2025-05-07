@@ -40,37 +40,42 @@ export const createFacultyInvitation = async (
   adminId: string,
   expirationDays: number = 7
 ): Promise<FacultyInvitation> => {
-  // Check if there's an existing invitation for this email
-  const existingInvitation = await prisma.facultyInvitation.findUnique({
-    where: { email },
-  });
-
-  // If there's an existing invitation, delete it
-  if (existingInvitation) {
-    await prisma.facultyInvitation.delete({
-      where: { id: existingInvitation.id },
+  try {
+    // Check if there's an existing invitation for this email
+    const existingInvitation = await prisma.facultyInvitation.findUnique({
+      where: { email },
     });
+
+    // If there's an existing invitation, delete it
+    if (existingInvitation) {
+      await prisma.facultyInvitation.delete({
+        where: { id: existingInvitation.id },
+      });
+    }
+
+    // Calculate expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+    // Generate a unique token
+    const token = generateInvitationToken();
+
+    // Create the invitation
+    const invitation = await prisma.facultyInvitation.create({
+      data: {
+        email,
+        token,
+        expiresAt,
+        createdBy: adminId,
+        status: InvitationStatus.PENDING,
+      },
+    });
+
+    return invitation;
+  } catch (error) {
+    console.error("Error creating faculty invitation:", error);
+    throw new Error("Failed to create faculty invitation");
   }
-
-  // Calculate expiration date
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + expirationDays);
-
-  // Generate a unique token
-  const token = generateInvitationToken();
-
-  // Create the invitation
-  const invitation = await prisma.facultyInvitation.create({
-    data: {
-      email,
-      token,
-      expiresAt,
-      createdBy: adminId,
-      status: InvitationStatus.PENDING,
-    },
-  });
-
-  return invitation;
 };
 
 /**
@@ -82,7 +87,7 @@ export const validateInvitationToken = async (
   token: string
 ): Promise<FacultyInvitation | null> => {
   // Find the invitation by token
-  const invitation = await prisma.facultyInvitation.findUnique({
+  const invitation = await prisma.facultyInvitation.findFirst({
     where: { token },
   });
 
@@ -114,11 +119,23 @@ export const markInvitationAsAccepted = async (
   token: string
 ): Promise<FacultyInvitation | null> => {
   try {
-    const invitation = await prisma.facultyInvitation.update({
+    // Find the invitation first
+    const invitation = await prisma.facultyInvitation.findFirst({
       where: { token },
+    });
+
+    if (!invitation) {
+      console.error("Invitation not found for token:", token);
+      return null;
+    }
+
+    // Update the invitation
+    const updatedInvitation = await prisma.facultyInvitation.update({
+      where: { id: invitation.id },
       data: { status: InvitationStatus.ACCEPTED },
     });
-    return invitation;
+
+    return updatedInvitation;
   } catch (error) {
     console.error("Error marking invitation as accepted:", error);
     return null;

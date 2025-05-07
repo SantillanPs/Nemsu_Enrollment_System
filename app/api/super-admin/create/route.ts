@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { validateSecretKey } from "@/config/superadmin";
+import { UserRole } from "@/lib/utils/role-check";
 
 /**
  * Creates a super admin user with full system access
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       data: {
         email,
         password: hashedPassword,
-        role: "SUPER_ADMIN", // Special role with full access
+        role: UserRole.SUPER_ADMIN.toUpperCase(), // Special role with full access
         profile: {
           create: {
             firstName,
