@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:unassigned": "ts-node --compiler-options=\"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed-unassigned-courses.ts"
+    "seed:unassigned": "ts-node --compiler-options=\"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed-unassigned-courses.ts",
+    "seed:courses": "node scripts/seed-comprehensive-courses.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

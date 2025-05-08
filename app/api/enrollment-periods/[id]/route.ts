@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Get the ID from params
-    const id = params.id;
+    const { id } = await params;
 
     try {
       const enrollmentPeriod = await prisma.enrollmentPeriod.findUnique({
@@ -85,7 +85,7 @@ export async function PATCH(
     }
 
     // Get the ID from params
-    const id = params.id;
+    const { id } = await params;
     const body = await request.json();
     const { name, description, startDate, endDate, isActive } = body;
 
@@ -232,7 +232,7 @@ export async function DELETE(
     }
 
     // Get the ID from params
-    const id = params.id;
+    const { id } = await params;
 
     // Check if enrollment period exists
     const existingPeriod = await prisma.enrollmentPeriod.findUnique({

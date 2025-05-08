@@ -1,345 +1,528 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
+// Import components
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Edit, ChevronLeft, User, Users, Plus, Trash2 } from "lucide-react";
+  CourseHeader,
+  CourseInfoCard,
+  SectionSummaryCard,
+  SectionsTable,
+  StudentsTable,
+  SectionDialog,
+  AssignInstructorDialog,
+  DeleteSectionDialog,
+  DeleteCourseDialog,
+} from "./components";
+
+// Define types
+interface Faculty {
+  id: string;
+  email: string;
+  profile: {
+    firstName: string;
+    lastName: string;
+    department?: string;
+  };
+}
+
+interface Prerequisite {
+  id: string;
+  code: string;
+  name: string;
+}
+
+interface Student {
+  id: string;
+  profile: {
+    firstName: string;
+    lastName: string;
+    studentId?: string;
+  };
+}
+
+interface Enrollment {
+  id: string;
+  student: Student;
+}
+
+interface Section {
+  id: string;
+  sectionCode: string;
+  schedule: string;
+  room: string;
+  maxStudents: number;
+  enrollments: Enrollment[];
+}
+
+interface Course {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  credits: number;
+  capacity: number;
+  semester: string;
+  year: number;
+  status: string;
+  facultyId: string | null;
+  faculty?: Faculty;
+  sections: Section[];
+  enrollments: Enrollment[];
+  prerequisites: Prerequisite[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SectionFormData {
+  sectionCode: string;
+  schedule: string;
+  room: string;
+  maxStudents: number;
+}
 
 export default function CourseDetails() {
   const params = useParams();
-  const courseId = Number(params.id);
+  const router = useRouter();
+  const { toast } = useToast();
+  const courseId = params.id as string;
+
+  const [course, setCourse] = useState<Course | null>(null);
+  const [facultyList, setFacultyList] = useState<Faculty[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [showSectionDialog, setShowSectionDialog] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<any>(null);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
+  const [showDeleteCourseDialog, setShowDeleteCourseDialog] = useState(false);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>("");
+  const [sectionFormData, setSectionFormData] = useState<SectionFormData>({
+    sectionCode: "",
+    schedule: "",
+    room: "",
+    maxStudents: 30,
+  });
 
-  // Mock data for courses with multiple sections
-  const courses = [
-    {
-      id: 1,
-      code: "CS101",
-      title: "Introduction to Computer Science",
-      department: "Computer Science",
-      credits: 3,
-      description:
-        "An introductory course to the fundamental principles of computing and programming. Topics include algorithm design, problem-solving techniques, data types, control structures, functions, arrays, and an introduction to object-oriented programming.",
-      prerequisites: "None",
-      status: "active",
-      year: 2023,
-      semester: "Fall 2023",
-      lastUpdated: "2023-06-15",
-      sections: [
-        {
-          id: 101,
-          sectionCode: "A",
-          instructor: "Dr. Alan Turing",
-          schedule: "Tue, Fri 10:30 AM - 12:00 PM",
-          location: "Science Building, Room 301",
-          enrollments: 28,
-          capacity: 30,
-          status: "active",
-          students: [
-            { id: 1, name: "John Smith", studentId: "ST12345" },
-            { id: 2, name: "Emily Johnson", studentId: "ST12346" },
-            // More students would be listed here
-          ],
-        },
-        {
-          id: 102,
-          sectionCode: "B",
-          instructor: "Dr. Grace Hopper",
-          schedule: "Tue, Fri 1:00 PM - 2:30 PM",
-          location: "Science Building, Room 302",
-          enrollments: 25,
-          capacity: 30,
-          status: "active",
-          students: [
-            { id: 3, name: "Michael Brown", studentId: "ST12347" },
-            { id: 4, name: "Sarah Davis", studentId: "ST12348" },
-            // More students would be listed here
-          ],
-        },
-        {
-          id: 103,
-          sectionCode: "C",
-          instructor: "Dr. John McCarthy",
-          schedule: "Mon, Wed 3:00 PM - 4:30 PM",
-          location: "Science Building, Room 303",
-          enrollments: 22,
-          capacity: 30,
-          status: "active",
-          students: [
-            { id: 5, name: "David Wilson", studentId: "ST12349" },
-            { id: 6, name: "Jennifer Martinez", studentId: "ST12350" },
-            // More students would be listed here
-          ],
-        },
-      ],
-    },
-    // Other courses would be here
-  ];
+  // Fetch course data
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  // Mock data for faculty members (for assigning to sections)
-  const facultyMembers = [
-    { id: 1, name: "Dr. Alan Turing", department: "Computer Science" },
-    { id: 2, name: "Dr. Grace Hopper", department: "Computer Science" },
-    { id: 3, name: "Dr. John McCarthy", department: "Computer Science" },
-    { id: 4, name: "Dr. Katherine Johnson", department: "Mathematics" },
-    { id: 5, name: "Dr. Isaac Newton", department: "Mathematics" },
-    { id: 6, name: "Prof. Jane Austen", department: "English" },
-    { id: 7, name: "Prof. William Shakespeare", department: "English" },
-    { id: 8, name: "Dr. Richard Feynman", department: "Physics" },
-    { id: 9, name: "Dr. Albert Einstein", department: "Physics" },
-    { id: 10, name: "Dr. Marie Curie", department: "Chemistry" },
-  ];
+        const response = await fetch(`/api/courses/${courseId}`);
 
-  // Find the course by ID
-  const course = courses.find((c) => c.id === courseId) || courses[0];
+        if (!response.ok) {
+          throw new Error("Failed to fetch course data");
+        }
 
-  const handleEditSection = (section: any) => {
+        const data = await response.json();
+        setCourse(data);
+      } catch (error) {
+        console.error("Error fetching course:", error);
+        setError("Failed to load course data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourse();
+  }, [courseId]);
+
+  // Fetch faculty list
+  useEffect(() => {
+    const fetchFaculty = async () => {
+      try {
+        const response = await fetch("/api/faculty");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch faculty data");
+        }
+
+        const data = await response.json();
+        setFacultyList(data);
+      } catch (error) {
+        console.error("Error fetching faculty:", error);
+        // We don't set the main error state here to avoid blocking the course display
+      }
+    };
+
+    fetchFaculty();
+  }, []);
+
+  // Handle section form input changes
+  const handleSectionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSectionFormData({
+      ...sectionFormData,
+      [name]: name === "maxStudents" ? parseInt(value) : value,
+    });
+  };
+
+  // Handle edit section
+  const handleEditSection = (section: Section) => {
     setSelectedSection(section);
+    setSectionFormData({
+      sectionCode: section.sectionCode,
+      schedule: section.schedule,
+      room: section.room,
+      maxStudents: section.maxStudents,
+    });
     setShowSectionDialog(true);
   };
 
+  // Handle add section
   const handleAddSection = () => {
-    setSelectedSection(null); // No section selected means we're adding a new one
+    setSelectedSection(null);
+    setSectionFormData({
+      sectionCode: "",
+      schedule: "",
+      room: "",
+      maxStudents: 30,
+    });
     setShowSectionDialog(true);
   };
 
-  const handleAssignInstructor = (section: any) => {
+  // Handle save section (add or edit)
+  const handleSaveSection = async () => {
+    try {
+      if (
+        !sectionFormData.sectionCode ||
+        !sectionFormData.schedule ||
+        !sectionFormData.room
+      ) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (selectedSection) {
+        // Edit existing section
+        const response = await fetch(
+          `/api/courses/${courseId}/sections/${selectedSection.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(sectionFormData),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to update section");
+        }
+
+        const data = await response.json();
+
+        // Update the course data with the updated section
+        if (course) {
+          setCourse({
+            ...course,
+            sections: course.sections.map((s) =>
+              s.id === selectedSection.id ? data.section : s
+            ),
+          });
+        }
+
+        toast({
+          title: "Section Updated",
+          description: "The section has been updated successfully.",
+        });
+      } else {
+        // Add new section
+        const response = await fetch(`/api/courses/${courseId}/sections`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(sectionFormData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to add section");
+        }
+
+        const data = await response.json();
+
+        // Update the course data with the new section
+        if (course) {
+          setCourse({
+            ...course,
+            sections: [...course.sections, data.section],
+          });
+        }
+
+        toast({
+          title: "Section Added",
+          description: "The section has been added successfully.",
+        });
+      }
+
+      setShowSectionDialog(false);
+    } catch (error) {
+      console.error("Error saving section:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save section. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle assign instructor
+  const handleAssignInstructor = (section: Section) => {
     setSelectedSection(section);
     setShowAssignDialog(true);
   };
 
-  const handleDeleteSection = (section: any) => {
+  // Handle save instructor assignment
+  const handleSaveInstructorAssignment = async () => {
+    try {
+      if (!selectedFacultyId) {
+        toast({
+          title: "No Instructor Selected",
+          description: "Please select an instructor to assign.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(
+        `/api/courses/${courseId}/sections/${selectedSection?.id}/assign-instructor`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            facultyId: selectedFacultyId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to assign instructor");
+      }
+
+      const data = await response.json();
+
+      // Refresh course data to get updated instructor information
+      const courseResponse = await fetch(`/api/courses/${courseId}`);
+      if (courseResponse.ok) {
+        const courseData = await courseResponse.json();
+        setCourse(courseData);
+      }
+
+      toast({
+        title: "Instructor Assigned",
+        description: "The instructor has been assigned successfully.",
+      });
+
+      setShowAssignDialog(false);
+      setSelectedFacultyId("");
+    } catch (error) {
+      console.error("Error assigning instructor:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign instructor. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle delete section
+  const handleDeleteSection = (section: Section) => {
     setSelectedSection(section);
     setShowDeleteSectionDialog(true);
   };
 
+  // Handle confirm delete section
+  const handleConfirmDeleteSection = async () => {
+    try {
+      if (!selectedSection) return;
+
+      const response = await fetch(
+        `/api/courses/${courseId}/sections/${selectedSection.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete section");
+      }
+
+      // Update the course data by removing the deleted section
+      if (course) {
+        setCourse({
+          ...course,
+          sections: course.sections.filter((s) => s.id !== selectedSection.id),
+        });
+      }
+
+      toast({
+        title: "Section Deleted",
+        description: "The section has been deleted successfully.",
+      });
+
+      setShowDeleteSectionDialog(false);
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete section. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle delete course
+  const handleDeleteCourse = () => {
+    setShowDeleteCourseDialog(true);
+  };
+
+  // Handle confirm delete course
+  const handleConfirmDeleteCourse = async () => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete course");
+      }
+
+      toast({
+        title: "Course Deleted",
+        description: "The course has been deleted successfully.",
+      });
+
+      setShowDeleteCourseDialog(false);
+      router.push("/admin/courses");
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete course. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Calculate total enrollments for a course across all sections
   const getTotalEnrollments = () => {
+    if (!course) return 0;
     return course.sections.reduce(
-      (total, section) => total + section.enrollments,
+      (total, section) => total + section.enrollments.length,
       0
     );
   };
 
   // Calculate total capacity for a course across all sections
   const getTotalCapacity = () => {
+    if (!course) return 0;
     return course.sections.reduce(
-      (total, section) => total + section.capacity,
+      (total, section) => total + section.maxStudents,
       0
     );
   };
 
+  // Get instructor name if available
+  const getInstructorName = (section: Section) => {
+    // This is a placeholder - in a real implementation, you would get the instructor name from the section data
+    // For now, we'll use the course faculty if available
+    if (course?.faculty?.profile) {
+      return `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`;
+    }
+    return "No instructor assigned";
+  };
+
+  // If loading, show loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium">Loading course data...</p>
+      </div>
+    );
+  }
+
+  // If error, show error state
+  if (error || !course) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="h-8 w-8 text-destructive mb-4" />
+        <p className="text-lg font-medium mb-2">Failed to load course data</p>
+        <p className="text-muted-foreground mb-4">
+          {error || "Course not found"}
+        </p>
+        <Link href="/admin/courses">
+          <Button>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Courses
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Link href="/admin/courses">
-            <Button variant="ghost" size="sm" className="mr-2">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Courses
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold">
-            {course.code}: {course.title}
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <Link href={`/admin/courses/edit/${course.id}`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Course
-            </Button>
-          </Link>
-          <Button onClick={handleAddSection}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Section
-          </Button>
-        </div>
-      </div>
+      {/* Course Header */}
+      <CourseHeader
+        courseId={course.id}
+        courseCode={course.code}
+        courseName={course.name}
+        onAddSection={handleAddSection}
+        onDeleteCourse={handleDeleteCourse}
+      />
 
+      {/* Course Info and Section Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Information</CardTitle>
-              <CardDescription>
-                Details about this course and its sections
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Department
-                  </p>
-                  <p>{course.department}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Credits
-                  </p>
-                  <p>{course.credits}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Semester
-                  </p>
-                  <p>{course.semester}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Status
-                  </p>
-                  <Badge
-                    className={
-                      course.status === "active"
-                        ? "bg-green-100 text-green-800"
-                        : course.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }
-                  >
-                    {course.status.charAt(0).toUpperCase() +
-                      course.status.slice(1)}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Prerequisites
-                  </p>
-                  <p>{course.prerequisites}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Last Updated
-                  </p>
-                  <p>{course.lastUpdated}</p>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Description
-                </p>
-                <p className="text-sm">{course.description}</p>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Sections ({course.sections.length})
-                  </p>
-                  <p className="text-sm">
-                    Total Enrollment: {getTotalEnrollments()}/
-                    {getTotalCapacity()}
-                  </p>
-                </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      getTotalEnrollments() / getTotalCapacity() > 0.9
-                        ? "bg-red-500"
-                        : getTotalEnrollments() / getTotalCapacity() > 0.7
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }`}
-                    style={{
-                      width: `${
-                        (getTotalEnrollments() / getTotalCapacity()) * 100
-                      }%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <CourseInfoCard
+            credits={course.credits}
+            capacity={course.capacity}
+            semester={course.semester}
+            year={course.year}
+            status={course.status}
+            prerequisites={course.prerequisites}
+            instructorName={
+              course.faculty?.profile
+                ? `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
+                : "No instructor assigned"
+            }
+            createdAt={course.createdAt}
+            updatedAt={course.updatedAt}
+            description={course.description}
+            sectionsCount={course.sections.length}
+            totalEnrollments={getTotalEnrollments()}
+            totalCapacity={getTotalCapacity()}
+          />
         </div>
-
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Section Summary</CardTitle>
-              <CardDescription>Quick overview of all sections</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {course.sections.map((section) => (
-                  <div
-                    key={section.id}
-                    className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        Section {section.sectionCode}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {section.instructor}
-                      </p>
-                      <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <Users className="h-3 w-3 mr-1" />
-                        <span>
-                          {section.enrollments}/{section.capacity}
-                        </span>
-                      </div>
-                    </div>
-                    <Badge
-                      className={
-                        section.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : section.status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
-                      }
-                    >
-                      {section.status.charAt(0).toUpperCase() +
-                        section.status.slice(1)}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <SectionSummaryCard
+            sections={course.sections}
+            getInstructorName={getInstructorName}
+            onAddSection={handleAddSection}
+          />
         </div>
       </div>
 
+      {/* Tabs for Sections and Students */}
       <Tabs defaultValue="sections" className="w-full">
         <TabsList>
           <TabsTrigger value="sections">Sections</TabsTrigger>
@@ -349,102 +532,31 @@ export default function CourseDetails() {
           <Card>
             <CardHeader>
               <CardTitle>Course Sections</CardTitle>
-              <CardDescription>
-                Manage sections, schedules, and instructor assignments
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Section</TableHead>
-                    <TableHead>Instructor</TableHead>
-                    <TableHead>Schedule</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Enrollment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {course.sections.map((section) => (
-                    <TableRow key={section.id}>
-                      <TableCell className="font-medium">
-                        {section.sectionCode}
-                      </TableCell>
-                      <TableCell>{section.instructor}</TableCell>
-                      <TableCell>{section.schedule}</TableCell>
-                      <TableCell>{section.location}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <span className="mr-2">
-                            {section.enrollments}/{section.capacity}
-                          </span>
-                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                section.enrollments / section.capacity > 0.9
-                                  ? "bg-red-500"
-                                  : section.enrollments / section.capacity > 0.7
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
-                              }`}
-                              style={{
-                                width: `${
-                                  (section.enrollments / section.capacity) * 100
-                                }%`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            section.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : section.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }
-                        >
-                          {section.status.charAt(0).toUpperCase() +
-                            section.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAssignInstructor(section)}
-                          >
-                            <User className="h-4 w-4" />
-                            <span className="sr-only">Assign Instructor</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditSection(section)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit Section</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600"
-                            onClick={() => handleDeleteSection(section)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete Section</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {course.sections.length > 0 ? (
+                <SectionsTable
+                  sections={course.sections}
+                  getInstructorName={getInstructorName}
+                  onEditSection={handleEditSection}
+                  onAssignInstructor={handleAssignInstructor}
+                  onDeleteSection={handleDeleteSection}
+                />
+              ) : (
+                <div className="text-center py-6 border rounded-md">
+                  <p className="text-muted-foreground">
+                    No sections created yet
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={handleAddSection}
+                  >
+                    Add Section
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -452,332 +564,66 @@ export default function CourseDetails() {
           <Card>
             <CardHeader>
               <CardTitle>Enrolled Students</CardTitle>
-              <CardDescription>
-                Students enrolled across all sections
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue={`section-${course.sections[0]?.id}`}>
-                <TabsList className="mb-4">
-                  {course.sections.map((section) => (
-                    <TabsTrigger
-                      key={section.id}
-                      value={`section-${section.id}`}
-                    >
-                      Section {section.sectionCode}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {course.sections.map((section) => (
-                  <TabsContent key={section.id} value={`section-${section.id}`}>
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Student ID</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead className="text-right">
-                              Actions
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {section.students.map((student) => (
-                            <TableRow key={student.id}>
-                              <TableCell>{student.studentId}</TableCell>
-                              <TableCell>{student.name}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="sm">
-                                  View Profile
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    {section.students.length === 0 && (
-                      <div className="text-center py-10">
-                        <h3 className="text-lg font-medium">
-                          No students enrolled
-                        </h3>
-                        <p className="text-muted-foreground mt-1">
-                          This section has no enrolled students
-                        </p>
-                      </div>
-                    )}
-                  </TabsContent>
-                ))}
-              </Tabs>
+              {course.sections.length > 0 ? (
+                <StudentsTable sections={course.sections} />
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">
+                    No sections available to display students
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Edit/Add Section Dialog */}
-      <Dialog open={showSectionDialog} onOpenChange={setShowSectionDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedSection ? "Edit Section" : "Add New Section"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedSection
-                ? `Edit details for Section ${selectedSection.sectionCode}`
-                : "Add a new section to this course"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div>
-              <p className="text-sm font-medium">Course</p>
-              <p className="text-sm">
-                {course.code}: {course.title}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="section-code">Section Code</Label>
-              <Input
-                id="section-code"
-                placeholder="e.g., A, B, C"
-                defaultValue={selectedSection?.sectionCode || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="instructor">Instructor</Label>
-              <Select defaultValue={selectedSection?.instructor || ""}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an instructor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {facultyMembers
-                    .filter(
-                      (faculty) => faculty.department === course.department
-                    )
-                    .map((faculty) => (
-                      <SelectItem key={faculty.id} value={faculty.name}>
-                        {faculty.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="days">Days</Label>
-                <Select
-                  defaultValue={selectedSection?.schedule.split(" ")[0] || ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select days" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mon, Wed">Monday, Wednesday</SelectItem>
-                    <SelectItem value="Tue, Thu">Tuesday, Thursday</SelectItem>
-                    <SelectItem value="Mon, Wed, Fri">
-                      Monday, Wednesday, Friday
-                    </SelectItem>
-                    <SelectItem value="Tue, Fri">Tuesday, Friday</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Select
-                  defaultValue={
-                    selectedSection?.schedule.split(" ").slice(2).join(" ") ||
-                    ""
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="9:00 AM - 10:30 AM">
-                      9:00 AM - 10:30 AM
-                    </SelectItem>
-                    <SelectItem value="10:30 AM - 12:00 PM">
-                      10:30 AM - 12:00 PM
-                    </SelectItem>
-                    <SelectItem value="1:00 PM - 2:30 PM">
-                      1:00 PM - 2:30 PM
-                    </SelectItem>
-                    <SelectItem value="3:00 PM - 4:30 PM">
-                      3:00 PM - 4:30 PM
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                placeholder="e.g., Science Building, Room 301"
-                defaultValue={selectedSection?.location || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacity</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min="1"
-                placeholder="e.g., 30"
-                defaultValue={selectedSection?.capacity || "30"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select defaultValue={selectedSection?.status || "active"}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSectionDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => setShowSectionDialog(false)}>
-              {selectedSection ? "Save Changes" : "Add Section"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialogs */}
+      <SectionDialog
+        open={showSectionDialog}
+        onOpenChange={setShowSectionDialog}
+        selectedSection={selectedSection}
+        courseCode={course.code}
+        courseName={course.name}
+        onSave={handleSaveSection}
+        formData={sectionFormData}
+        onFormChange={handleSectionInputChange}
+      />
 
-      {/* Assign Instructor Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Assign Instructor</DialogTitle>
-            <DialogDescription>
-              {selectedSection &&
-                `Assign an instructor to Section ${selectedSection.sectionCode}`}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSection && (
-            <div className="py-4 space-y-4">
-              <div>
-                <p className="text-sm font-medium">Course</p>
-                <p className="text-sm">
-                  {course.code}: {course.title}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Section</p>
-                <p className="text-sm">
-                  Section {selectedSection.sectionCode} •{" "}
-                  {selectedSection.schedule} • {selectedSection.location}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="current-instructor">Current Instructor</Label>
-                <Input
-                  id="current-instructor"
-                  value={selectedSection.instructor}
-                  disabled
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-instructor">New Instructor</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an instructor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facultyMembers
-                      .filter(
-                        (faculty) => faculty.department === course.department
-                      )
-                      .map((faculty) => (
-                        <SelectItem key={faculty.id} value={faculty.name}>
-                          {faculty.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowAssignDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => setShowAssignDialog(false)}>
-              Assign Instructor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AssignInstructorDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        selectedSection={selectedSection}
+        courseCode={course.code}
+        courseName={course.name}
+        facultyList={facultyList}
+        selectedFacultyId={selectedFacultyId}
+        onFacultyChange={setSelectedFacultyId}
+        onSave={handleSaveInstructorAssignment}
+        instructorName={
+          selectedSection ? getInstructorName(selectedSection) : ""
+        }
+      />
 
-      {/* Delete Section Dialog */}
-      <Dialog
+      <DeleteSectionDialog
         open={showDeleteSectionDialog}
         onOpenChange={setShowDeleteSectionDialog}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Section</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this section? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSection && (
-            <div className="py-4">
-              <div>
-                <p className="font-medium">
-                  Section {selectedSection.sectionCode}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Instructor: {selectedSection.instructor}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Schedule: {selectedSection.schedule}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Location: {selectedSection.location}
-                </p>
-              </div>
-              {selectedSection.enrollments > 0 && (
-                <div className="mt-4 bg-red-50 p-3 rounded-md">
-                  <p className="text-sm text-red-800">
-                    <strong>Warning:</strong> This section has{" "}
-                    {selectedSection.enrollments} enrolled students. Deleting it
-                    will remove all student enrollments.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteSectionDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteSectionDialog(false)}
-            >
-              Delete Section
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        selectedSection={selectedSection}
+        onConfirmDelete={handleConfirmDeleteSection}
+        getInstructorName={getInstructorName}
+      />
+
+      <DeleteCourseDialog
+        open={showDeleteCourseDialog}
+        onOpenChange={setShowDeleteCourseDialog}
+        onConfirmDelete={handleConfirmDeleteCourse}
+        courseCode={course.code}
+        courseName={course.name}
+        sectionsCount={course.sections.length}
+        enrollmentsCount={getTotalEnrollments()}
+      />
     </div>
   );
 }

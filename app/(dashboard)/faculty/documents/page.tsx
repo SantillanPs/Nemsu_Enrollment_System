@@ -494,16 +494,15 @@ export default function FacultyDocuments() {
                                     )}
 
                                     <div className="flex gap-2">
-                                      <Button
-                                        variant="outline"
-                                        className="flex-1"
-                                        onClick={() =>
-                                          window.open(doc.fileUrl, "_blank")
-                                        }
+                                      <a
+                                        href={doc.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2`}
                                       >
                                         <FileCheck className="h-4 w-4 mr-2" />
                                         View Document
-                                      </Button>
+                                      </a>
 
                                       {doc.status === "PENDING" && (
                                         <>

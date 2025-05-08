@@ -45,6 +45,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ProcessEnrollmentsButton } from "./components/ProcessEnrollmentsButton";
 
 interface EnrollmentPeriod {
   id: string;
@@ -584,7 +585,15 @@ export default function EnrollmentPeriodsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
+                        {/* Process enrollments button - only show for active or past periods */}
+                        {(isCurrentPeriod(period) || isPastPeriod(period)) && (
+                          <ProcessEnrollmentsButton
+                            enrollmentPeriodId={period.id}
+                            enrollmentPeriodName={period.name}
+                            onSuccess={fetchEnrollmentPeriods}
+                          />
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

@@ -37,6 +37,12 @@ export async function GET() {
         },
       },
       include: {
+        enrollments: true,
+        sections: {
+          include: {
+            enrollments: true,
+          },
+        },
         Course_B: {
           select: {
             id: true,
@@ -59,12 +65,60 @@ export async function GET() {
       return NextResponse.json({ error: "No courses found" }, { status: 404 });
     }
 
-    // Transform the response to map Course_B to prerequisites
+    // Transform the response to include prerequisites and stats
     const transformedCourses = courses.map((course) => {
-      const { Course_B, ...rest } = course;
+      // Calculate enrollment stats
+      const totalEnrollments = course.enrollments.length;
+      const pendingEnrollments = course.enrollments.filter(
+        (enrollment) => enrollment.status === "PENDING"
+      ).length;
+      const approvedEnrollments = course.enrollments.filter(
+        (enrollment) => enrollment.status === "APPROVED"
+      ).length;
+      const completedEnrollments = course.enrollments.filter(
+        (enrollment) => enrollment.status === "COMPLETED"
+      ).length;
+
+      // Calculate section stats
+      const sectionsWithStats = course.sections.map((section) => {
+        const totalSectionEnrollments = section.enrollments.length;
+        const pendingSectionEnrollments = section.enrollments.filter(
+          (enrollment) => enrollment.status === "PENDING"
+        ).length;
+        const approvedSectionEnrollments = section.enrollments.filter(
+          (enrollment) => enrollment.status === "APPROVED"
+        ).length;
+        const completedSectionEnrollments = section.enrollments.filter(
+          (enrollment) => enrollment.status === "COMPLETED"
+        ).length;
+
+        return {
+          ...section,
+          stats: {
+            totalEnrollments: totalSectionEnrollments,
+            pendingEnrollments: pendingSectionEnrollments,
+            approvedEnrollments: approvedSectionEnrollments,
+            completedEnrollments: completedSectionEnrollments,
+            availableSeats: section.maxStudents - approvedSectionEnrollments,
+          },
+        };
+      });
+
+      // Extract Course_B and map it to prerequisites
+      const { Course_B, ...restCourse } = course;
+
       return {
-        ...rest,
+        ...restCourse,
         prerequisites: Course_B || [],
+        sections: sectionsWithStats,
+        stats: {
+          totalEnrollments,
+          pendingEnrollments,
+          approvedEnrollments,
+          completedEnrollments,
+          availableSeats: course.capacity - approvedEnrollments,
+          totalSections: course.sections ? course.sections.length : 0,
+        },
       };
     });
 

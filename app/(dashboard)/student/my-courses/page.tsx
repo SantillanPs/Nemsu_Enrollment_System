@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,7 +27,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter } from "lucide-react";
+import {
+  Search,
+  Filter,
+  BookOpen,
+  Users,
+  Calendar,
+  Clock,
+  GraduationCap,
+  ChevronRight,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -171,13 +189,16 @@ export default function MyCourses() {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      APPROVED: "bg-green-100 text-green-800",
-      REJECTED: "bg-red-100 text-red-800",
-      WITHDRAWN: "bg-gray-100 text-gray-800",
-      COMPLETED: "bg-blue-100 text-blue-800",
+      PENDING: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+      APPROVED: "bg-green-100 text-green-800 hover:bg-green-100",
+      REJECTED: "bg-red-100 text-red-800 hover:bg-red-100",
+      WITHDRAWN: "bg-gray-100 text-gray-800 hover:bg-gray-100",
+      COMPLETED: "bg-blue-100 text-blue-800 hover:bg-blue-100",
     };
-    return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return (
+      colors[status as keyof typeof colors] ||
+      "bg-gray-100 text-gray-800 hover:bg-gray-100"
+    );
   };
 
   if (loading) {
@@ -201,7 +222,7 @@ export default function MyCourses() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-[180px]">
@@ -244,127 +265,162 @@ export default function MyCourses() {
 
       <div className="space-y-8">
         {sortedGroups.map((group) => (
-          <div key={group.semester} className="rounded-md">
-            <h3 className="text-lg pl-14 font-semibold mb-1">{group.title}</h3>
-            <div className="overflow-x-auto rounded border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-blue-50 text-blue-800">
-                    <th className="text-left font-medium p-3">Course Code</th>
-                    <th className="text-left font-medium p-3">
-                      Course Details
-                    </th>
-                    <th className="text-left font-medium p-3">Units</th>
-                    <th className="text-left font-medium p-3">Status</th>
-                    <th className="text-left font-medium p-3">Grade</th>
-                    <th className="text-right font-medium p-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.enrollments.map((enrollment) => (
-                    <tr
-                      key={enrollment.id}
-                      className="border-b hover:bg-gray-50"
-                    >
-                      <td className="p-3 font-medium">
-                        {enrollment.course.code}
-                      </td>
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium">
-                            {enrollment.course.name}
+          <div key={group.semester} className="space-y-4">
+            <h3 className="text-xl font-semibold pl-2">{group.title}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {group.enrollments.map((enrollment) => (
+                <Card
+                  key={enrollment.id}
+                  className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <Badge className="mb-2 bg-blue-100 text-blue-800 hover:bg-blue-100">
+                          {enrollment.course.code}
+                        </Badge>
+                        <CardTitle className="text-lg">
+                          {enrollment.course.name}
+                        </CardTitle>
+                      </div>
+                      <Badge className={getStatusColor(enrollment.status)}>
+                        {enrollment.status}
+                      </Badge>
+                    </div>
+                    <CardDescription className="line-clamp-2 mt-1">
+                      {enrollment.course.description}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="flex-grow pb-0">
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        <span>{enrollment.course.credits} credits</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Instructor</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{group.semester.split(" - ")[0]}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{group.semester.split(" - ")[1]}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1 text-sm">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Instructor:</span>
+                        </div>
+                        <span className="text-sm">
+                          {enrollment.course.faculty.profile.firstName}{" "}
+                          {enrollment.course.faculty.profile.lastName}
+                        </span>
+                      </div>
+
+                      {enrollment.grade && (
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1 text-sm">
+                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Grade:</span>
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {enrollment.course.faculty.profile.firstName}{" "}
-                            {enrollment.course.faculty.profile.lastName}
+                          <span className="text-sm font-medium">
+                            {enrollment.grade}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Enrolled On:</span>
+                        </div>
+                        <span className="text-sm">
+                          {new Date(enrollment.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="pt-4 mt-auto">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full flex items-center justify-center gap-1"
+                        >
+                          View Details
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {enrollment.course.code}: {enrollment.course.name}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Course and enrollment details
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div>
+                            <h4 className="font-medium">Description</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {enrollment.course.description}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="font-medium">Credits</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {enrollment.course.credits}
+                              </p>
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Instructor</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {enrollment.course.faculty.profile.firstName}{" "}
+                                {enrollment.course.faculty.profile.lastName}
+                              </p>
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Enrollment Status</h4>
+                              <Badge
+                                className={`mt-1 ${getStatusColor(
+                                  enrollment.status
+                                )}`}
+                              >
+                                {enrollment.status}
+                              </Badge>
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Grade</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {enrollment.grade || "Not graded"}
+                              </p>
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Enrolled On</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {new Date(
+                                  enrollment.createdAt
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        {enrollment.course.credits}
-                      </td>
-                      <td className="p-3">
-                        <Badge className={getStatusColor(enrollment.status)}>
-                          {enrollment.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3">{enrollment.grade || "-"}</td>
-                      <td className="p-3 text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              Details
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>
-                                {enrollment.course.code}:{" "}
-                                {enrollment.course.name}
-                              </DialogTitle>
-                              <DialogDescription>
-                                Course and enrollment details
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div>
-                                <h4 className="font-medium">Description</h4>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {enrollment.course.description}
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <h4 className="font-medium">Credits</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {enrollment.course.credits}
-                                  </p>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">Instructor</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {
-                                      enrollment.course.faculty.profile
-                                        .firstName
-                                    }{" "}
-                                    {enrollment.course.faculty.profile.lastName}
-                                  </p>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">
-                                    Enrollment Status
-                                  </h4>
-                                  <Badge
-                                    className={`mt-1 ${getStatusColor(
-                                      enrollment.status
-                                    )}`}
-                                  >
-                                    {enrollment.status}
-                                  </Badge>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">Grade</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {enrollment.grade || "Not graded"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">Enrolled On</h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {new Date(
-                                      enrollment.createdAt
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </DialogContent>
+                    </Dialog>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           </div>
         ))}
