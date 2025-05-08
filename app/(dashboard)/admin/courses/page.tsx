@@ -232,7 +232,9 @@ export default function ManageCourses() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete course");
+        const errorMessage = errorData.error || "Failed to delete course";
+        const errorDetails = errorData.details ? `\n${errorData.details}` : "";
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       // Remove the course from the local state

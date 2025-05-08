@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     console.log("Received request body:", body);
-    const { name, description, startDate, endDate, isActive } = body;
+    const { name, description, semester, startDate, endDate, isActive } = body;
 
     // Validate required fields
     if (!name || !startDate || !endDate) {
@@ -117,21 +117,43 @@ export async function POST(request: Request) {
         });
       }
 
-      // Create the enrollment period
-      const enrollmentPeriod = await prisma.enrollmentPeriod.create({
-        data: {
-          name,
-          description,
-          startDate: start,
-          endDate: end,
-          isActive: isActive || false,
-        },
-      });
+      // Prepare data for enrollment period creation
+      const enrollmentData = {
+        name,
+        description,
+        // Skip the semester field for now as it's causing issues
+        // semester: semester === "NONE" ? null : semester,
+        startDate: start,
+        endDate: end,
+        isActive: isActive || false,
+      };
 
-      return NextResponse.json({
-        success: true,
-        enrollmentPeriod,
-      });
+      console.log("Creating enrollment period with data:", enrollmentData);
+
+      // Create the enrollment period
+      try {
+        const enrollmentPeriod = await prisma.enrollmentPeriod.create({
+          data: enrollmentData,
+        });
+
+        console.log(
+          "Successfully created enrollment period:",
+          enrollmentPeriod
+        );
+
+        return NextResponse.json({
+          success: true,
+          enrollmentPeriod,
+        });
+      } catch (createError) {
+        console.error("Error in Prisma create operation:", createError);
+        return NextResponse.json(
+          {
+            error: `Failed to create enrollment period: ${createError.message}`,
+          },
+          { status: 500 }
+        );
+      }
     } catch (error) {
       console.error("Error creating enrollment period:", error);
       return NextResponse.json(

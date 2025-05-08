@@ -33,6 +33,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Calendar,
@@ -51,6 +58,7 @@ interface EnrollmentPeriod {
   id: string;
   name: string;
   description: string | null;
+  semester: string | null;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -78,6 +86,8 @@ export default function EnrollmentPeriodsPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    // Temporarily remove semester field until database migration is complete
+    // semester: "NONE",
     startDate: new Date(),
     endDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Default to 7 days from now
     isActive: false,
@@ -170,6 +180,8 @@ export default function EnrollmentPeriodsPage() {
     setFormData({
       name: "",
       description: "",
+      // Temporarily remove semester field until database migration is complete
+      // semester: "NONE",
       startDate: new Date(),
       endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
       isActive: false,
@@ -187,6 +199,8 @@ export default function EnrollmentPeriodsPage() {
     setFormData({
       name: period.name,
       description: period.description || "",
+      // Temporarily remove semester field until database migration is complete
+      // semester: period.semester || "NONE",
       startDate: new Date(period.startDate),
       endDate: new Date(period.endDate),
       isActive: period.isActive,
@@ -506,6 +520,7 @@ export default function EnrollmentPeriodsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  {/* <TableHead>Semester</TableHead> */}
                   <TableHead>Start Date</TableHead>
                   <TableHead>End Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -516,6 +531,24 @@ export default function EnrollmentPeriodsPage() {
                 {enrollmentPeriods.map((period) => (
                   <TableRow key={period.id}>
                     <TableCell className="font-medium">{period.name}</TableCell>
+                    {/* Temporarily hide semester display until database migration is complete */}
+                    {/* <TableCell>
+                      {period.semester && period.semester !== "NONE" ? (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
+                          {period.semester === "FIRST"
+                            ? "First Semester"
+                            : period.semester === "SECOND"
+                            ? "Second Semester"
+                            : period.semester === "SUMMER"
+                            ? "Summer"
+                            : period.semester}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">
+                          Not specified
+                        </span>
+                      )}
+                    </TableCell> */}
                     <TableCell>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -664,6 +697,26 @@ export default function EnrollmentPeriodsPage() {
                 onChange={handleChange}
               />
             </div>
+            {/* Temporarily hide semester selection until database migration is complete */}
+            {/* <div className="space-y-2">
+              <Label htmlFor="semester">Semester (Optional)</Label>
+              <Select
+                value={formData.semester}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, semester: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">None</SelectItem>
+                  <SelectItem value="FIRST">First Semester</SelectItem>
+                  <SelectItem value="SECOND">Second Semester</SelectItem>
+                  <SelectItem value="SUMMER">Summer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div> */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date</Label>
@@ -748,6 +801,26 @@ export default function EnrollmentPeriodsPage() {
                 onChange={handleChange}
               />
             </div>
+            {/* Temporarily hide semester selection until database migration is complete */}
+            {/* <div className="space-y-2">
+              <Label htmlFor="semester">Semester (Optional)</Label>
+              <Select
+                value={formData.semester}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, semester: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">None</SelectItem>
+                  <SelectItem value="FIRST">First Semester</SelectItem>
+                  <SelectItem value="SECOND">Second Semester</SelectItem>
+                  <SelectItem value="SUMMER">Summer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div> */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date</Label>
@@ -811,6 +884,21 @@ export default function EnrollmentPeriodsPage() {
             {selectedPeriod && (
               <div className="border rounded-md p-4 bg-gray-50">
                 <p className="font-medium">{selectedPeriod.name}</p>
+                {/* Temporarily hide semester display until database migration is complete */}
+                {/* {selectedPeriod.semester &&
+                  selectedPeriod.semester !== "NONE" && (
+                    <p className="text-sm mt-1">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
+                        {selectedPeriod.semester === "FIRST"
+                          ? "First Semester"
+                          : selectedPeriod.semester === "SECOND"
+                          ? "Second Semester"
+                          : selectedPeriod.semester === "SUMMER"
+                          ? "Summer"
+                          : selectedPeriod.semester}
+                      </span>
+                    </p>
+                  )} */}
                 <p className="text-sm text-gray-500 mt-1">
                   {format(new Date(selectedPeriod.startDate), "PPP")} to{" "}
                   {format(new Date(selectedPeriod.endDate), "PPP")}

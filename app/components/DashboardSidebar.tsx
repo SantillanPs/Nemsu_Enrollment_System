@@ -9,6 +9,7 @@ import {
   hasRoleAccess,
   getEffectiveRole,
 } from "@/lib/utils/role-check";
+import { LoadingLink } from "@/components/ui/loading-link";
 import {
   Home,
   BookOpen,
@@ -218,12 +219,12 @@ export function DashboardSidebar({
       <div
         className={`flex h-16 items-center justify-between border-b px-6 bg-gradient-to-r ${currentTheme.gradient}`}
       >
-        <Link href={`/${effectiveRole}`} className="flex items-center">
+        <LoadingLink href={`/${effectiveRole}`} className="flex items-center">
           <GraduationCap className="h-6 w-6 text-white" />
           <span className="ml-2 text-lg font-semibold text-white">
             {portalTitle}
           </span>
-        </Link>
+        </LoadingLink>
         {onCloseSidebar && (
           <button
             onClick={onCloseSidebar}
@@ -310,7 +311,7 @@ export function DashboardSidebar({
 
           const isActive = pathname === item.href;
           return (
-            <Link
+            <LoadingLink
               key={item.name}
               href={item.href}
               className={cn(
@@ -318,6 +319,13 @@ export function DashboardSidebar({
                 isActive
                   ? `${currentTheme.active} ${currentTheme.darkActive}`
                   : `text-gray-700 ${currentTheme.hover} dark:text-gray-300 ${currentTheme.darkHover}`
+              )}
+              loaderSize={5}
+              loaderClassName={cn(
+                "text-current",
+                isActive
+                  ? `${currentTheme.activeIcon} ${currentTheme.darkActiveIcon}`
+                  : `text-gray-500 ${currentTheme.hoverIcon} dark:text-gray-400 ${currentTheme.darkHoverIcon}`
               )}
             >
               {item.icon && (
@@ -351,7 +359,7 @@ export function DashboardSidebar({
                     </TooltipProvider>
                   )}
               </span>
-            </Link>
+            </LoadingLink>
           );
         })}
       </nav>

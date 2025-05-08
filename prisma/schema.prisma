@@ -12,7 +12,7 @@ model User {
   email         String       @unique
   password      String
   role          String       @default("STUDENT")
-  isSystemUser  Boolean      @default(false) // Flag for system-created users like the hard-coded super admin
+  isSystemUser  Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   taughtCourses Course[]     @relation("FacultyCourses")
@@ -71,8 +71,8 @@ model Document {
   updatedAt           DateTime     @updatedAt
   applicationId       String?
   verificationMessage String?
-  profile             Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
   Application         Application? @relation(fields: [applicationId], references: [id])
+  profile             Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
 }
@@ -138,9 +138,9 @@ model Enrollment {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   sectionId String?
-  section   CourseSection? @relation(fields: [sectionId], references: [id])
-  student   User           @relation("StudentEnrollments", fields: [studentId], references: [id])
   course    Course         @relation(fields: [courseId], references: [id])
+  student   User           @relation("StudentEnrollments", fields: [studentId], references: [id])
+  section   CourseSection? @relation(fields: [sectionId], references: [id])
 
   @@unique([studentId, courseId])
   @@index([studentId])
@@ -152,6 +152,7 @@ model EnrollmentPeriod {
   id          String   @id @default(cuid())
   name        String
   description String?
+  semester    String? // Added semester field (optional)
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean  @default(false)

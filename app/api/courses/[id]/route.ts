@@ -254,7 +254,7 @@ export async function DELETE(
     });
 
     // Delete all sections for this course
-    await prisma.section.deleteMany({
+    await prisma.courseSection.deleteMany({
       where: { courseId: id },
     });
 
@@ -268,6 +268,30 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Error deleting course:", error);
+
+    // Provide more specific error messages based on the error type
+    if (error instanceof Error) {
+      // Check for specific Prisma errors
+      if (error.message.includes("Foreign key constraint failed")) {
+        return NextResponse.json(
+          {
+            error:
+              "Cannot delete this course because it is referenced by other records.",
+            details: error.message,
+          },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: "Failed to delete course",
+          details: error.message,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to delete course" },
       { status: 500 }

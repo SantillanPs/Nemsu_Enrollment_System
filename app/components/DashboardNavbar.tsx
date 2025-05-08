@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { User, Bell, LogOut, Shield } from "lucide-react";
+import { LoadingLink } from "@/components/ui/loading-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,13 +222,14 @@ export function DashboardNavbar({
                 </div>
               </div>
               <DropdownMenuItem asChild>
-                <Link
+                <LoadingLink
                   href={`/${effectiveRole}/profile`}
                   className="flex items-center cursor-pointer"
+                  loaderSize={4}
                 >
                   <User className="mr-2 h-4 w-4" />
                   Profile
-                </Link>
+                </LoadingLink>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => signOut()}

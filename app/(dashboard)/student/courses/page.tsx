@@ -68,6 +68,9 @@ export default function AvailableCourses() {
     Record<string, string[]>
   >({});
   const [completedCourseIds, setCompletedCourseIds] = useState<string[]>([]);
+  const [enrolledCourseMap, setEnrolledCourseMap] = useState<
+    Record<string, string>
+  >({});
   const [enrollmentStatus, setEnrollmentStatus] = useState<{
     isEnrollmentOpen: boolean;
     currentPeriod: any;
@@ -137,9 +140,37 @@ export default function AvailableCourses() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchCourses(), fetchCompletedCourses()]);
+      await Promise.all([
+        fetchCourses(),
+        fetchCompletedCourses(),
+        fetchEnrolledCourseIds(),
+      ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to refresh enrollment data without full page reload
+  const refreshEnrollmentData = async () => {
+    try {
+      await fetchEnrolledCourseIds();
+    } catch (error) {
+      console.error("Error refreshing enrollment data:", error);
+    }
+  };
+
+  const fetchEnrolledCourseIds = async () => {
+    try {
+      const response = await fetch("/api/student/enrolled-course-ids");
+      if (!response.ok) {
+        console.error("Failed to fetch enrolled course IDs");
+        return;
+      }
+      const data = await response.json();
+      setEnrolledCourseMap(data);
+    } catch (error) {
+      console.error("Error fetching enrolled course IDs:", error);
+      // Not showing toast as this is not critical
     }
   };
 
@@ -276,6 +307,15 @@ export default function AvailableCourses() {
   });
 
   const handleEnrollment = async (courseId: string) => {
+    // Check if already enrolled
+    if (enrolledCourseMap[courseId]) {
+      toast({
+        title: "Already Enrolled",
+        description: `You are already enrolled in this course with status: ${enrolledCourseMap[courseId]}`,
+      });
+      return;
+    }
+
     try {
       setEnrollingCourses((prev) => [...prev, courseId]);
 
@@ -298,8 +338,20 @@ export default function AvailableCourses() {
         description: "Enrollment request submitted successfully",
       });
 
-      // Refresh courses to update UI
-      fetchCourses();
+      // Update enrolledCourseMap to reflect the new enrollment
+      if (data.success && data.enrollments && data.enrollments.length > 0) {
+        // Log the enrollment data to understand its structure
+        console.log("Enrollment response:", data);
+
+        // Update the enrolled course map
+        setEnrolledCourseMap((prev) => ({
+          ...prev,
+          [courseId]: "PENDING", // Default to PENDING status for new enrollments
+        }));
+
+        // Refresh enrollment data to ensure we have the latest status
+        setTimeout(() => refreshEnrollmentData(), 500);
+      }
     } catch (error) {
       console.error("Error enrolling:", error);
       toast({
@@ -316,12 +368,16 @@ export default function AvailableCourses() {
   };
 
   const handleBulkEnrollment = async (groupKey: string) => {
-    const coursesToEnroll = selectedCourses[groupKey] || [];
+    // Filter out already enrolled courses
+    const coursesToEnroll = (selectedCourses[groupKey] || []).filter(
+      (courseId) => !enrolledCourseMap[courseId]
+    );
 
     if (coursesToEnroll.length === 0) {
       toast({
         title: "No courses selected",
-        description: "Please select at least one course to enroll.",
+        description:
+          "Please select at least one course to enroll or the selected courses are already enrolled.",
       });
       return;
     }
@@ -374,8 +430,25 @@ export default function AvailableCourses() {
         [groupKey]: [],
       }));
 
-      // Refresh courses to update UI
-      fetchCourses();
+      // Update enrolledCourseMap to reflect the new enrollments
+      if (data.success && data.enrollments && data.enrollments.length > 0) {
+        // Log the enrollment data to understand its structure
+        console.log("Bulk enrollment response:", data);
+
+        // Create a map of courseId -> PENDING for all successfully enrolled courses
+        const newEnrollments = coursesToEnroll.reduce((acc, courseId) => {
+          acc[courseId] = "PENDING";
+          return acc;
+        }, {} as Record<string, string>);
+
+        setEnrolledCourseMap((prev) => ({
+          ...prev,
+          ...newEnrollments,
+        }));
+
+        // Refresh enrollment data to ensure we have the latest status
+        setTimeout(() => refreshEnrollmentData(), 500);
+      }
     } catch (error) {
       console.error("Error in bulk enrollment:", error);
       toast({
@@ -392,13 +465,16 @@ export default function AvailableCourses() {
   };
 
   const handleEnrollAll = async () => {
-    // Get all available course IDs
-    const allCourseIds = courses.map((course) => course.id);
+    // Get all available course IDs that are not already enrolled
+    const allCourseIds = courses
+      .map((course) => course.id)
+      .filter((courseId) => !enrolledCourseMap[courseId]);
 
     if (allCourseIds.length === 0) {
       toast({
         title: "No courses available",
-        description: "There are no available courses to enroll in.",
+        description:
+          "There are no available courses to enroll in or you're already enrolled in all available courses.",
       });
       return;
     }
@@ -448,8 +524,25 @@ export default function AvailableCourses() {
       // Clear all selections
       setSelectedCourses({});
 
-      // Refresh courses to update UI
-      fetchCourses();
+      // Update enrolledCourseMap to reflect the new enrollments
+      if (data.success && data.enrollments && data.enrollments.length > 0) {
+        // Log the enrollment data to understand its structure
+        console.log("Enroll all response:", data);
+
+        // Create a map of courseId -> PENDING for all successfully enrolled courses
+        const newEnrollments = allCourseIds.reduce((acc, courseId) => {
+          acc[courseId] = "PENDING";
+          return acc;
+        }, {} as Record<string, string>);
+
+        setEnrolledCourseMap((prev) => ({
+          ...prev,
+          ...newEnrollments,
+        }));
+
+        // Refresh enrollment data to ensure we have the latest status
+        setTimeout(() => refreshEnrollmentData(), 500);
+      }
     } catch (error) {
       console.error("Error in enrolling all courses:", error);
       toast({
@@ -466,6 +559,15 @@ export default function AvailableCourses() {
   };
 
   const toggleCourseSelection = (groupKey: string, courseId: string) => {
+    // Don't allow selecting already enrolled courses
+    if (enrolledCourseMap[courseId]) {
+      toast({
+        title: "Already Enrolled",
+        description: `You are already enrolled in this course with status: ${enrolledCourseMap[courseId]}`,
+      });
+      return;
+    }
+
     setSelectedCourses((prev) => {
       const currentSelected = prev[groupKey] || [];
       const newSelected = currentSelected.includes(courseId)
@@ -480,13 +582,18 @@ export default function AvailableCourses() {
   };
 
   const toggleSelectAll = (groupKey: string, courseIds: string[]) => {
+    // Filter out already enrolled courses
+    const availableCourseIds = courseIds.filter((id) => !enrolledCourseMap[id]);
+
     setSelectedCourses((prev) => {
       const currentSelected = prev[groupKey] || [];
-      const allSelected = courseIds.every((id) => currentSelected.includes(id));
+      const allSelected = availableCourseIds.every((id) =>
+        currentSelected.includes(id)
+      );
 
       return {
         ...prev,
-        [groupKey]: allSelected ? [] : courseIds,
+        [groupKey]: allSelected ? [] : availableCourseIds,
       };
     });
   };
@@ -853,6 +960,7 @@ export default function AvailableCourses() {
                                 onCheckedChange={() =>
                                   toggleCourseSelection(groupKey, course.id)
                                 }
+                                disabled={!!enrolledCourseMap[course.id]}
                                 className="mt-1"
                               />
                               <div className="flex-1">
@@ -1128,42 +1236,66 @@ export default function AvailableCourses() {
                               </div>
                             )}
 
-                            <Button
-                              className={cn(
-                                "w-full font-medium",
-                                course.prerequisites.length > 0 &&
+                            {enrolledCourseMap[course.id] ? (
+                              <Button
+                                className="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                                disabled={true}
+                              >
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                {`Already Enrolled (${
+                                  enrolledCourseMap[course.id]
+                                })`}
+                              </Button>
+                            ) : (
+                              <Button
+                                className={cn(
+                                  "w-full font-medium",
+                                  course.prerequisites.length > 0 &&
+                                    !course.prerequisites.every((p) =>
+                                      completedCourseIds.includes(p.id)
+                                    ) &&
+                                    "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                                )}
+                                onClick={() => handleEnrollment(course.id)}
+                                disabled={
+                                  !enrollmentStatus.isEnrollmentOpen ||
+                                  !verificationStatus.isVerified ||
+                                  isEnrolling ||
+                                  (course.prerequisites.length > 0 &&
+                                    !course.prerequisites.every((p) =>
+                                      completedCourseIds.includes(p.id)
+                                    ))
+                                }
+                              >
+                                {isEnrolling ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Enrolling...
+                                  </>
+                                ) : !verificationStatus.isVerified ? (
+                                  "Account Not Verified"
+                                ) : course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
                                     completedCourseIds.includes(p.id)
-                                  ) &&
-                                  "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
-                              )}
-                              onClick={() => handleEnrollment(course.id)}
-                              disabled={
-                                !enrollmentStatus.isEnrollmentOpen ||
-                                !verificationStatus.isVerified ||
-                                isEnrolling ||
-                                (course.prerequisites.length > 0 &&
-                                  !course.prerequisites.every((p) =>
-                                    completedCourseIds.includes(p.id)
-                                  ))
-                              }
-                            >
-                              {isEnrolling ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Enrolling...
-                                </>
-                              ) : !verificationStatus.isVerified ? (
-                                "Account Not Verified"
-                              ) : course.prerequisites.length > 0 &&
-                                !course.prerequisites.every((p) =>
-                                  completedCourseIds.includes(p.id)
-                                ) ? (
-                                "Prerequisites Required"
-                              ) : (
-                                "Enroll in Course"
-                              )}
-                            </Button>
+                                  ) ? (
+                                  "Prerequisites Required"
+                                ) : (
+                                  "Enroll in Course"
+                                )}
+                              </Button>
+                            )}
                           </CardFooter>
                         </Card>
                       );

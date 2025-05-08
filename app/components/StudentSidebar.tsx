@@ -9,6 +9,7 @@ import {
   Settings,
   GraduationCap,
 } from "lucide-react";
+import { LoadingLink } from "@/components/ui/loading-link";
 
 const navigation = [
   { name: "Dashboard", href: "/student", icon: Home },
@@ -25,16 +26,16 @@ export function StudentSidebar() {
   return (
     <div className="flex h-full w-56 flex-col border-r bg-white">
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/student" className="flex items-center">
+        <LoadingLink href="/student" className="flex items-center">
           <GraduationCap className="h-6 w-6 text-primary" />
           <span className="ml-2 text-lg font-semibold">Student Portal</span>
-        </Link>
+        </LoadingLink>
       </div>
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link
+            <LoadingLink
               key={item.name}
               href={item.href}
               className={cn(
@@ -43,10 +44,12 @@ export function StudentSidebar() {
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted text-muted-foreground hover:text-foreground"
               )}
+              loaderSize={4}
+              loaderClassName="text-current"
             >
               <item.icon className={cn("mr-3 h-5 w-5")} />
               {item.name}
-            </Link>
+            </LoadingLink>
           );
         })}
       </nav>

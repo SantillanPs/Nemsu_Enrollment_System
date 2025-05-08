@@ -402,7 +402,10 @@ export default function CourseDetails() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete course");
+        const errorData = await response.json();
+        const errorMessage = errorData.error || "Failed to delete course";
+        const errorDetails = errorData.details ? `\n${errorData.details}` : "";
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       toast({
@@ -416,7 +419,10 @@ export default function CourseDetails() {
       console.error("Error deleting course:", error);
       toast({
         title: "Error",
-        description: "Failed to delete course. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete course. Please try again.",
         variant: "destructive",
       });
     }

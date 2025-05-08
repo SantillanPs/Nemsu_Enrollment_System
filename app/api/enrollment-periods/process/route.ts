@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { hasRoleAccess } from "@/lib/utils/role-check";
+import { assignSectionsForCourse } from "@/lib/utils/section-assignment";
 
 // Process enrollments after enrollment period closes
 export async function POST(request: Request) {
@@ -87,25 +88,13 @@ export async function POST(request: Request) {
 
     for (const course of coursesWithEnrollments) {
       try {
-        // Call the section assignment API for each course
-        const response = await fetch(`${request.url.split("/process")[0]}/sections/assign`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ courseId: course.id }),
-        });
+        // Call the section assignment utility function directly
+        const assignmentResult = await assignSectionsForCourse(course.id);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to assign sections");
-        }
-
-        const data = await response.json();
         results.push({
           courseId: course.id,
           code: course.code,
-          assigned: data.assigned.length,
+          assigned: assignmentResult.assigned?.length || 0,
           total: course.enrollments.length,
         });
       } catch (error) {

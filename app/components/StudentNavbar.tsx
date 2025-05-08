@@ -2,6 +2,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { User, Bell, LogOut } from "lucide-react";
+import { LoadingLink } from "@/components/ui/loading-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,10 +40,13 @@ export function StudentNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuItem asChild>
-                <Link href="/student/profile" className="flex items-center">
+                <LoadingLink
+                  href="/student/profile"
+                  className="flex items-center"
+                >
                   <User className="mr-2 h-4 w-4" />
                   Profile
-                </Link>
+                </LoadingLink>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => signOut()}

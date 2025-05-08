@@ -87,7 +87,7 @@ export async function PATCH(
     // Get the ID from params
     const { id } = await params;
     const body = await request.json();
-    const { name, description, startDate, endDate, isActive } = body;
+    const { name, description, semester, startDate, endDate, isActive } = body;
 
     // Check if enrollment period exists
     const existingPeriod = await prisma.enrollmentPeriod.findUnique({
@@ -105,6 +105,12 @@ export async function PATCH(
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
+
+    // Skip the semester field for now as it's causing issues
+    // We'll need to run a proper migration to add this field to the database
+    // if (semester !== undefined) {
+    //   updateData.semester = semester === "NONE" ? null : semester;
+    // }
 
     console.log("Received dates for update:", { startDate, endDate });
 
@@ -189,16 +195,29 @@ export async function PATCH(
       }
     }
 
-    // Update the enrollment period
-    const updatedPeriod = await prisma.enrollmentPeriod.update({
-      where: { id },
-      data: updateData,
-    });
+    // Log the update data for debugging
+    console.log("Updating enrollment period with data:", updateData);
 
-    return NextResponse.json({
-      success: true,
-      enrollmentPeriod: updatedPeriod,
-    });
+    // Update the enrollment period
+    try {
+      const updatedPeriod = await prisma.enrollmentPeriod.update({
+        where: { id },
+        data: updateData,
+      });
+
+      console.log("Successfully updated enrollment period:", updatedPeriod);
+
+      return NextResponse.json({
+        success: true,
+        enrollmentPeriod: updatedPeriod,
+      });
+    } catch (updateError) {
+      console.error("Error in Prisma update operation:", updateError);
+      return NextResponse.json(
+        { error: `Failed to update enrollment period: ${updateError.message}` },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Error updating enrollment period:", error);
     return NextResponse.json(

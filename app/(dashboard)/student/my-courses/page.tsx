@@ -319,8 +319,9 @@ export default function MyCourses() {
                           <span className="font-medium">Instructor:</span>
                         </div>
                         <span className="text-sm">
-                          {enrollment.course.faculty.profile.firstName}{" "}
-                          {enrollment.course.faculty.profile.lastName}
+                          {enrollment.course.faculty?.profile
+                            ? `${enrollment.course.faculty.profile.firstName} ${enrollment.course.faculty.profile.lastName}`
+                            : "No instructor assigned"}
                         </span>
                       </div>
 
@@ -386,8 +387,9 @@ export default function MyCourses() {
                             <div>
                               <h4 className="font-medium">Instructor</h4>
                               <p className="text-sm text-muted-foreground mt-1">
-                                {enrollment.course.faculty.profile.firstName}{" "}
-                                {enrollment.course.faculty.profile.lastName}
+                                {enrollment.course.faculty?.profile
+                                  ? `${enrollment.course.faculty.profile.firstName} ${enrollment.course.faculty.profile.lastName}`
+                                  : "No instructor assigned"}
                               </p>
                             </div>
                             <div>
