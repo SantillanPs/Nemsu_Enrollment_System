@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
@@ -17,11 +18,24 @@ import {
   CheckCircle,
   AlertCircle,
   Shield,
+  Loader2,
 } from "lucide-react";
+import StudentDashboardLoading from "./loading";
 
 export default function StudentDashboard() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const isVerified = session?.user?.isVerified;
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate data loading
+  useEffect(() => {
+    // Simulate API call delay
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Mock data for student dashboard
   const enrollmentRequests = [
@@ -61,6 +75,11 @@ export default function StudentDashboard() {
       date: "2023-08-08",
     },
   ];
+
+  // Show loading state while data is being fetched
+  if (isLoading || status === "loading") {
+    return <StudentDashboardLoading />;
+  }
 
   return (
     <div className="space-y-6">
