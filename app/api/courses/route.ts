@@ -2,9 +2,48 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Course, Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
+import { hasRoleAccess } from "@/lib/utils/role-check";
 
 export async function GET() {
   try {
+    // Get the current user's session to check their role
+    const session = await getServerSession();
+    let whereClause: any = {
+      status: {
+        not: "CANCELLED",
+      },
+    };
+
+    // If the user is logged in, check their role
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { role: true },
+      });
+
+      console.log("User role:", user?.role);
+
+      // If the user is a student, only show OPEN courses
+      // For admin, faculty, and super admin, show all non-cancelled courses
+      if (user && user.role.toLowerCase() === "student") {
+        console.log("User is a student - filtering to show only OPEN courses");
+        // For students, we only want to show courses with status "OPEN"
+        whereClause = {
+          status: "OPEN",
+        };
+      } else {
+        console.log(
+          "User is admin/faculty/super-admin - showing all non-cancelled courses"
+        );
+        // For admin, faculty, and super admin, show all non-cancelled courses
+        whereClause = {
+          status: {
+            not: "CANCELLED",
+          },
+        };
+      }
+    }
+
     const courses = await prisma.course.findMany({
       include: {
         faculty: {
@@ -25,11 +64,7 @@ export async function GET() {
           },
         },
       },
-      where: {
-        status: {
-          not: "CANCELLED",
-        },
-      },
+      where: whereClause,
       orderBy: [
         {
           year: "asc",
@@ -52,6 +87,17 @@ export async function GET() {
         prerequisites: Course_B || [],
       };
     });
+
+    console.log(
+      "Returning courses with statuses:",
+      transformedCourses.map((course) => ({
+        id: course.id,
+        code: course.code,
+        status: course.status,
+      }))
+    );
+
+    console.log("Where clause used:", JSON.stringify(whereClause));
 
     return NextResponse.json(transformedCourses);
   } catch (error) {

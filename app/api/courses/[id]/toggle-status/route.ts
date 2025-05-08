@@ -31,7 +31,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if course exists
     const existingCourse = await prisma.course.findUnique({

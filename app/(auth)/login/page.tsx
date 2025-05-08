@@ -5,9 +5,19 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -19,13 +29,33 @@ import {
 import { GraduationCap, ArrowLeft, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+// Define the login form schema
+const loginFormSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginFormSchema>;
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const { toast } = useToast();
+
+  // Initialize form with Zod validation
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
     // Check if user was redirected from successful registration
@@ -42,14 +72,11 @@ export default function LoginPage() {
     }
   }, [searchParams, toast]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    setError("");
+    setServerError("");
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const { email, password } = data;
 
     try {
       const result = await signIn("credentials", {
@@ -59,7 +86,16 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        // Handle specific error messages
+        if (result.error === "No user found") {
+          setServerError("No account found with this email address");
+        } else if (result.error === "Invalid password") {
+          setServerError("Incorrect password");
+        } else if (result.error === "Missing credentials") {
+          setServerError("Please enter both email and password");
+        } else {
+          setServerError(result.error || "Invalid email or password");
+        }
         return;
       }
 
@@ -81,7 +117,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err) {
-      setError("An error occurred during sign in");
+      setServerError("An error occurred during sign in");
     } finally {
       setIsLoading(false);
     }
@@ -117,55 +153,75 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+                noValidate
+              >
+                <FormField
+                  control={form.control}
                   name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="your.email@example.com"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="your.email@example.com"
+                          type="email"
+                          autoComplete="email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
+                <FormField
+                  control={form.control}
                   name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <Link
+                          href="/forgot-password"
+                          className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                        >
+                          Forgot your password?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          autoComplete="current-password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                  {error}
-                </div>
-              )}
+                {serverError && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    {serverError}
+                  </div>
+                )}
 
-              {successMessage && (
-                <div className="text-sm text-green-600 bg-green-50 p-2 rounded flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {successMessage}
-                </div>
-              )}
+                {successMessage && (
+                  <div className="text-sm text-green-600 bg-green-50 p-2 rounded flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {successMessage}
+                  </div>
+                )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Sign in"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-600">

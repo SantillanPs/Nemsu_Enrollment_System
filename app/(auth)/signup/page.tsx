@@ -98,6 +98,7 @@ type SignupFormValues = z.infer<typeof signupFormSchema>;
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
   const { toast } = useToast();
 
   const form = useForm<SignupFormValues>({
@@ -143,6 +144,7 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
+    setServerError("");
 
     try {
       // Validate that all date parts are selected
@@ -186,7 +188,23 @@ export default function SignupPage() {
 
       if (!response.ok) {
         console.error("Signup error:", responseData);
-        throw new Error(responseData.error || "Failed to create account");
+
+        // Handle specific server errors
+        if (responseData.error === "Email already registered") {
+          form.setError("email", {
+            type: "server",
+            message: "This email is already registered",
+          });
+        } else if (responseData.error === "Student ID already registered") {
+          form.setError("studentId", {
+            type: "server",
+            message: "This Student ID is already registered",
+          });
+        } else {
+          // Set general server error for other cases
+          setServerError(responseData.error || "Failed to create account");
+        }
+        return;
       }
 
       // Show success toast with longer duration
@@ -202,12 +220,9 @@ export default function SignupPage() {
       }, 1500);
     } catch (error) {
       console.error("Signup error:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to create account",
-        variant: "destructive",
-      });
+      setServerError(
+        error instanceof Error ? error.message : "Failed to create account"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -458,6 +473,12 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {serverError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                  {serverError}
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

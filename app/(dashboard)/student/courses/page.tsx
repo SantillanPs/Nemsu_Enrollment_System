@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,6 +57,7 @@ interface Course {
 }
 
 export default function AvailableCourses() {
+  const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
@@ -87,6 +89,9 @@ export default function AvailableCourses() {
     profileMissing: false,
   });
   const { toast } = useToast();
+
+  // Check if the user is a super admin
+  const isSuperAdmin = session?.user?.role?.toLowerCase() === "super_admin";
 
   useEffect(() => {
     fetchData();
@@ -492,6 +497,19 @@ export default function AvailableCourses() {
 
   return (
     <div className="container mx-auto p-6">
+      {/* Super Admin Notice */}
+      {isSuperAdmin && (
+        <Alert className="bg-amber-50 border-amber-200 mb-6">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800">Super Admin View</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            You are viewing this page as a Super Admin. You can see all courses,
+            including those with status "CLOSED" which are hidden from regular
+            students. Courses with status "CLOSED" are marked with a red badge.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Verification Status Alert */}
       {!verificationStatus.isVerified && (
         <Alert className="bg-red-50 border-red-200 mb-6">
@@ -840,9 +858,28 @@ export default function AvailableCourses() {
                               <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">
                                   <div>
-                                    <Badge className="mb-2 bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300">
-                                      {course.code}
-                                    </Badge>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300">
+                                        {course.code}
+                                      </Badge>
+
+                                      {/* Course status badge */}
+                                      {course.status === "OPEN" ? (
+                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-300">
+                                          OPEN
+                                        </Badge>
+                                      ) : course.status === "CLOSED" ? (
+                                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300">
+                                          CLOSED{" "}
+                                          {isSuperAdmin &&
+                                            "(Hidden from students)"}
+                                        </Badge>
+                                      ) : (
+                                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300">
+                                          {course.status}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <CardTitle>
                                       <label
                                         htmlFor={`course-${course.id}`}

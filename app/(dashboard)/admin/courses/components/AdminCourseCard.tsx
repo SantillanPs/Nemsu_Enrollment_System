@@ -203,15 +203,6 @@ const AdminCourseCard = ({
                   Edit Course
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link
-                  href={`/admin/courses/duplicate/${course.id}`}
-                  className="flex w-full"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Duplicate
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600"
