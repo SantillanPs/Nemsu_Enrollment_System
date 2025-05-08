@@ -299,6 +299,15 @@ export default function ManageCourses() {
     setShowSectionDialog(true);
   };
 
+  // Handle course update (used by the toggle status feature)
+  const handleCourseUpdated = (updatedCourse: Course) => {
+    setCourses(
+      courses.map((course) =>
+        course.id === updatedCourse.id ? updatedCourse : course
+      )
+    );
+  };
+
   // Calculate total enrollments for a course across all sections
   const getTotalEnrollments = (course: Course) => {
     if (!course.sections || course.sections.length === 0) {
@@ -441,6 +450,7 @@ export default function ManageCourses() {
                   onAddSection={handleAddSection}
                   getTotalEnrollments={getTotalEnrollments}
                   getTotalCapacity={getTotalCapacity}
+                  onCourseUpdated={handleCourseUpdated}
                 />
               ))}
             </div>

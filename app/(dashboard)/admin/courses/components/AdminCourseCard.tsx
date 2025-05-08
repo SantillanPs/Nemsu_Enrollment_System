@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -11,6 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +34,8 @@ import {
   Trash2,
   User,
   Plus,
+  Power,
+  Loader2,
 } from "lucide-react";
 
 // Define types
@@ -82,6 +87,7 @@ interface AdminCourseCardProps {
   onAddSection: (course: Course) => void;
   getTotalEnrollments: (course: Course) => number;
   getTotalCapacity: (course: Course) => number;
+  onCourseUpdated: (updatedCourse: Course) => void;
 }
 
 const AdminCourseCard = ({
@@ -90,7 +96,11 @@ const AdminCourseCard = ({
   onAddSection,
   getTotalEnrollments,
   getTotalCapacity,
+  onCourseUpdated,
 }: AdminCourseCardProps) => {
+  const { toast } = useToast();
+  const [isToggling, setIsToggling] = useState(false);
+
   // Map the database status to the UI status
   const getUiStatus = (status: string) => {
     return status === "OPEN"
@@ -101,6 +111,48 @@ const AdminCourseCard = ({
   };
 
   const uiStatus = getUiStatus(course.status);
+
+  // Handle toggle course status
+  const handleToggleStatus = async () => {
+    try {
+      setIsToggling(true);
+
+      const response = await fetch(`/api/courses/${course.id}/toggle-status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to toggle course status");
+      }
+
+      const { data, message } = await response.json();
+
+      // Update the course in the parent component
+      onCourseUpdated(data);
+
+      toast({
+        title: "Status Updated",
+        description: message,
+        variant: data.status === "OPEN" ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error("Error toggling course status:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to toggle course status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   // Get status color
   const getStatusColor = (status: string) => {
@@ -134,19 +186,28 @@ const AdminCourseCard = ({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Course Actions</DropdownMenuLabel>
               <DropdownMenuItem>
-                <Link href={`/admin/courses/${course.id}`} className="flex w-full">
+                <Link
+                  href={`/admin/courses/${course.id}`}
+                  className="flex w-full"
+                >
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Link href={`/admin/courses/edit/${course.id}`} className="flex w-full">
+                <Link
+                  href={`/admin/courses/edit/${course.id}`}
+                  className="flex w-full"
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Course
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Link href={`/admin/courses/duplicate/${course.id}`} className="flex w-full">
+                <Link
+                  href={`/admin/courses/duplicate/${course.id}`}
+                  className="flex w-full"
+                >
                   <Copy className="mr-2 h-4 w-4" />
                   Duplicate
                 </Link>
@@ -197,14 +258,17 @@ const AdminCourseCard = ({
           <div className="flex items-center gap-1 text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             <span>
-              {course.semester.charAt(0) + course.semester.slice(1).toLowerCase()}{" "}
+              {course.semester.charAt(0) +
+                course.semester.slice(1).toLowerCase()}{" "}
               Semester
             </span>
           </div>
         </div>
 
         <div className="flex justify-between items-center mb-2">
-          <h4 className="text-sm font-medium">Sections ({course.sections?.length || 0})</h4>
+          <h4 className="text-sm font-medium">
+            Sections ({course.sections?.length || 0})
+          </h4>
           <Button
             size="sm"
             variant="outline"
@@ -220,7 +284,7 @@ const AdminCourseCard = ({
           {course.prerequisites && course.prerequisites.length > 0 ? (
             <div className="flex items-start gap-1">
               <span className="font-medium">Prerequisites:</span>
-              <span>{course.prerequisites.map(p => p.code).join(", ")}</span>
+              <span>{course.prerequisites.map((p) => p.code).join(", ")}</span>
             </div>
           ) : null}
           <div className="flex items-start gap-1">
@@ -230,16 +294,33 @@ const AdminCourseCard = ({
         </div>
       </CardContent>
 
-      <CardFooter className="pt-4 mt-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          asChild
-        >
-          <Link href={`/admin/courses/${course.id}`}>
-            View Full Details
-          </Link>
+      <CardFooter className="pt-4 mt-auto flex flex-col gap-3">
+        <div className="flex items-center justify-between w-full border rounded-md p-2">
+          <div className="flex items-center gap-2">
+            <Power
+              className={`h-4 w-4 ${
+                course.status === "OPEN" ? "text-green-600" : "text-red-600"
+              }`}
+            />
+            <span className="text-sm font-medium">
+              {course.status === "OPEN" ? "Active" : "Inactive"}
+            </span>
+          </div>
+          {isToggling ? (
+            <div className="flex items-center">
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              <span className="text-xs">Updating...</span>
+            </div>
+          ) : (
+            <Switch
+              checked={course.status === "OPEN"}
+              onCheckedChange={handleToggleStatus}
+              aria-label="Toggle course status"
+            />
+          )}
+        </div>
+        <Button variant="outline" size="sm" className="w-full" asChild>
+          <Link href={`/admin/courses/${course.id}`}>View Full Details</Link>
         </Button>
       </CardFooter>
     </Card>
