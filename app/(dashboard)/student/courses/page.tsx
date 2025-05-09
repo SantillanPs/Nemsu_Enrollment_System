@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import Loading from "./loading";
 
 interface Course {
   id: string;
@@ -599,7 +600,7 @@ export default function AvailableCourses() {
   };
 
   if (loading) {
-    return <div>Loading courses...</div>;
+    return <Loading />;
   }
 
   return (

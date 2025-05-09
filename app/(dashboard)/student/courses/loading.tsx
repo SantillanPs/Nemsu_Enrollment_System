@@ -1,6 +1,5 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShimmerSkeleton,
   WaveSkeleton,
@@ -11,12 +10,9 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Loading() {
   return (
@@ -52,16 +48,26 @@ export default function Loading() {
                 <div>
                   <ShimmerSkeleton
                     className="h-5 w-16 mb-2"
-                    delay={`${index * 75}`}
+                    delay={index % 2 === 0 ? "75" : "150"}
                   />
                   <ShimmerSkeleton
                     className="h-6 w-48"
-                    delay={`${index * 75 + 50}`}
+                    delay={index % 2 === 0 ? "150" : "300"}
                   />
                 </div>
                 <GradientSkeleton
                   className="h-6 w-20 rounded-full"
-                  delay={`${index * 75}`}
+                  delay={
+                    index === 0
+                      ? "75"
+                      : index === 1
+                      ? "150"
+                      : index === 2
+                      ? "300"
+                      : index === 3
+                      ? "500"
+                      : "700"
+                  }
                 />
               </div>
             </CardHeader>
@@ -70,58 +76,34 @@ export default function Loading() {
                 <div className="flex items-center">
                   <PulseSkeleton
                     className="h-4 w-4 mr-2 rounded-full"
-                    delay={`${index * 75 + 100}`}
+                    delay="75"
                   />
-                  <WaveSkeleton
-                    className="h-4 w-32"
-                    delay={`${index * 75 + 100}`}
-                  />
+                  <WaveSkeleton className="h-4 w-32" delay="75" />
                 </div>
                 <div className="flex items-center">
                   <PulseSkeleton
                     className="h-4 w-4 mr-2 rounded-full"
-                    delay={`${index * 75 + 150}`}
+                    delay="150"
                   />
-                  <WaveSkeleton
-                    className="h-4 w-40"
-                    delay={`${index * 75 + 150}`}
-                  />
+                  <WaveSkeleton className="h-4 w-40" delay="150" />
                 </div>
                 <div className="flex items-center">
                   <PulseSkeleton
                     className="h-4 w-4 mr-2 rounded-full"
-                    delay={`${index * 75 + 200}`}
+                    delay="300"
                   />
-                  <WaveSkeleton
-                    className="h-4 w-36"
-                    delay={`${index * 75 + 200}`}
-                  />
+                  <WaveSkeleton className="h-4 w-36" delay="300" />
                 </div>
               </div>
               <div className="mt-4">
-                <ShimmerSkeleton
-                  className="h-4 w-full"
-                  delay={`${index * 75 + 250}`}
-                />
-                <ShimmerSkeleton
-                  className="h-4 w-full mt-2"
-                  delay={`${index * 75 + 300}`}
-                />
-                <ShimmerSkeleton
-                  className="h-4 w-3/4 mt-2"
-                  delay={`${index * 75 + 350}`}
-                />
+                <ShimmerSkeleton className="h-4 w-full" delay="75" />
+                <ShimmerSkeleton className="h-4 w-full mt-2" delay="150" />
+                <ShimmerSkeleton className="h-4 w-3/4 mt-2" delay="300" />
               </div>
             </CardContent>
             <CardFooter className="flex justify-between border-t pt-4">
-              <FadeSkeleton
-                className="h-9 w-24 rounded-md"
-                delay={`${index * 75 + 400}`}
-              />
-              <FadeSkeleton
-                className="h-9 w-24 rounded-md"
-                delay={`${index * 75 + 450}`}
-              />
+              <FadeSkeleton className="h-9 w-24 rounded-md" delay="500" />
+              <FadeSkeleton className="h-9 w-24 rounded-md" delay="700" />
             </CardFooter>
           </Card>
         ))}
