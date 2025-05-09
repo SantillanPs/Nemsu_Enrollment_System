@@ -32,18 +32,33 @@ export async function GET() {
       (enrollment) => enrollment.status === "COMPLETED"
     );
 
+    const currentEnrollments = user.enrollments.filter(
+      (enrollment) =>
+        enrollment.status === "PENDING" || enrollment.status === "APPROVED"
+    );
+
     const totalCredits = completedEnrollments.reduce(
+      (sum, enrollment) => sum + enrollment.course.credits,
+      0
+    );
+
+    const currentEnrolledUnits = currentEnrollments.reduce(
       (sum, enrollment) => sum + enrollment.course.credits,
       0
     );
 
     const gpa = calculateGPA(completedEnrollments);
 
+    // Get max units (default to 18 if not set)
+    const maxUnits = user.profile?.maxUnits || 18;
+
     return NextResponse.json({
       profile: user.profile,
       academic: {
         totalCredits,
         gpa,
+        currentEnrolledUnits,
+        maxUnits,
         enrollmentStatus: totalCredits >= 12 ? "Full-time" : "Part-time",
         academicStatus: gpa >= 2.0 ? "Good Standing" : "Academic Probation",
       },

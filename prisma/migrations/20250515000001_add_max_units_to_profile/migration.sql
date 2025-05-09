@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Profile" ADD COLUMN "maxUnits" INTEGER NOT NULL DEFAULT 18;

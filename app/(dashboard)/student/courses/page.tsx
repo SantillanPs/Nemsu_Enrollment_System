@@ -92,6 +92,13 @@ export default function AvailableCourses() {
     hasAllDocuments: false,
     profileMissing: false,
   });
+  const [unitsInfo, setUnitsInfo] = useState<{
+    currentEnrolledUnits: number;
+    maxUnits: number;
+  }>({
+    currentEnrolledUnits: 0,
+    maxUnits: 18,
+  });
   const { toast } = useToast();
 
   // Check if the user is a super admin
@@ -101,6 +108,7 @@ export default function AvailableCourses() {
     fetchData();
     fetchEnrollmentStatus();
     fetchVerificationStatus();
+    fetchUnitsInfo();
   }, []);
 
   const fetchVerificationStatus = async () => {
@@ -250,6 +258,26 @@ export default function AvailableCourses() {
     }
   };
 
+  const fetchUnitsInfo = async () => {
+    try {
+      const response = await fetch("/api/profile");
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile information");
+      }
+      const data = await response.json();
+
+      if (data.academic) {
+        setUnitsInfo({
+          currentEnrolledUnits: data.academic.currentEnrolledUnits || 0,
+          maxUnits: data.academic.maxUnits || 18,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching units information:", error);
+      // Keep default values if there's an error
+    }
+  };
+
   // Filter courses based on search term, year, and semester
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -350,8 +378,11 @@ export default function AvailableCourses() {
           [courseId]: "PENDING", // Default to PENDING status for new enrollments
         }));
 
-        // Refresh enrollment data to ensure we have the latest status
-        setTimeout(() => refreshEnrollmentData(), 500);
+        // Refresh enrollment data and units info to ensure we have the latest status
+        setTimeout(() => {
+          refreshEnrollmentData();
+          fetchUnitsInfo();
+        }, 500);
       }
     } catch (error) {
       console.error("Error enrolling:", error);
@@ -447,8 +478,11 @@ export default function AvailableCourses() {
           ...newEnrollments,
         }));
 
-        // Refresh enrollment data to ensure we have the latest status
-        setTimeout(() => refreshEnrollmentData(), 500);
+        // Refresh enrollment data and units info to ensure we have the latest status
+        setTimeout(() => {
+          refreshEnrollmentData();
+          fetchUnitsInfo();
+        }, 500);
       }
     } catch (error) {
       console.error("Error in bulk enrollment:", error);
@@ -541,8 +575,11 @@ export default function AvailableCourses() {
           ...newEnrollments,
         }));
 
-        // Refresh enrollment data to ensure we have the latest status
-        setTimeout(() => refreshEnrollmentData(), 500);
+        // Refresh enrollment data and units info to ensure we have the latest status
+        setTimeout(() => {
+          refreshEnrollmentData();
+          fetchUnitsInfo();
+        }, 500);
       }
     } catch (error) {
       console.error("Error in enrolling all courses:", error);
@@ -715,6 +752,42 @@ export default function AvailableCourses() {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Units Information Card */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Credit Units</CardTitle>
+        </CardHeader>
+        <div className="px-6 pb-6">
+          <div className="flex justify-between items-center mb-2">
+            <div className="text-sm font-medium">Current Enrolled Units</div>
+            <div className="text-sm font-medium">
+              {unitsInfo.currentEnrolledUnits} / {unitsInfo.maxUnits} units
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className={`h-2.5 rounded-full ${
+                unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.8
+                  ? "bg-red-500"
+                  : unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.5
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+              }`}
+              style={{
+                width: `${Math.min(
+                  100,
+                  (unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits) * 100
+                )}%`,
+              }}
+            ></div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            You can enroll in courses up to your maximum allowed units (
+            {unitsInfo.maxUnits}).
+          </p>
+        </div>
+      </Card>
 
       {enrollmentStatus.isEnrollmentOpen &&
         enrollmentStatus.currentPeriod &&

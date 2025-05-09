@@ -30,6 +30,7 @@ model Profile {
   studentId       String?           @unique
   schoolYear      Int?
   isVerified      Boolean           @default(false)
+  maxUnits        Int               @default(18) // Default max units per semester
   userId          String            @unique
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

@@ -52,6 +52,8 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 interface AcademicInfo {
   totalCredits: number;
   gpa: number;
+  currentEnrolledUnits: number;
+  maxUnits: number;
   enrollmentStatus: string;
   academicStatus: string;
 }
@@ -302,6 +304,39 @@ export default function StudentProfile() {
             <div>
               <h4 className="text-sm font-medium">Expected Graduation</h4>
               <p className="text-sm text-muted-foreground mt-1">Spring 2025</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">Current Enrolled Units</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                {academicInfo
+                  ? `${academicInfo.currentEnrolledUnits} / ${academicInfo.maxUnits} units`
+                  : "Loading..."}
+              </p>
+              {academicInfo && (
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                  <div
+                    className={`h-2.5 rounded-full ${
+                      academicInfo.currentEnrolledUnits /
+                        academicInfo.maxUnits >
+                      0.8
+                        ? "bg-red-500"
+                        : academicInfo.currentEnrolledUnits /
+                            academicInfo.maxUnits >
+                          0.5
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (academicInfo.currentEnrolledUnits /
+                          academicInfo.maxUnits) *
+                          100
+                      )}%`,
+                    }}
+                  ></div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

@@ -169,6 +169,7 @@ export async function PATCH(
           phone: profile.phone,
           address: profile.address,
           schoolYear: profile.schoolYear,
+          maxUnits: profile.maxUnits || 18, // Add maxUnits field with default of 18
         },
       });
 

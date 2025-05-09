@@ -192,6 +192,45 @@ export async function POST(request: Request) {
     const results = [];
     const errors = [];
 
+    // Calculate current enrolled units
+    const currentEnrollments = await prisma.enrollment.findMany({
+      where: {
+        studentId: user.id,
+        status: { in: ["PENDING", "APPROVED"] },
+      },
+      include: {
+        course: {
+          select: {
+            credits: true,
+          },
+        },
+      },
+    });
+
+    const currentEnrolledUnits = currentEnrollments.reduce(
+      (total, enrollment) => total + (enrollment.course?.credits || 0),
+      0
+    );
+
+    // Get max units from profile (default to 18 if not set)
+    const maxUnits = user.profile.maxUnits || 18;
+
+    // Calculate total units for new courses
+    const newCoursesUnits = transformedCourses.reduce(
+      (total, course) => total + course.credits,
+      0
+    );
+
+    // Check if enrolling in these courses would exceed max units
+    if (currentEnrolledUnits + newCoursesUnits > maxUnits) {
+      return NextResponse.json(
+        {
+          error: `Enrolling in these courses would exceed your maximum allowed units (${maxUnits}). You currently have ${currentEnrolledUnits} units and are trying to add ${newCoursesUnits} more.`,
+        },
+        { status: 403 }
+      );
+    }
+
     for (const course of transformedCourses) {
       // Skip if already enrolled
       if (existingCourseIds.includes(course.id)) {
