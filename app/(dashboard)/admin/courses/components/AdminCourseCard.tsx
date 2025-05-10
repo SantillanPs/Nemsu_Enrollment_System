@@ -85,6 +85,7 @@ interface AdminCourseCardProps {
   course: Course;
   onDeleteCourse: (course: Course) => void;
   onAddSection: (course: Course) => void;
+  onAssignInstructor: (course: Course) => void;
   getTotalEnrollments: (course: Course) => number;
   getTotalCapacity: (course: Course) => number;
   onCourseUpdated: (updatedCourse: Course) => void;
@@ -94,6 +95,7 @@ const AdminCourseCard = ({
   course,
   onDeleteCourse,
   onAddSection,
+  onAssignInstructor,
   getTotalEnrollments,
   getTotalCapacity,
   onCourseUpdated,
@@ -278,9 +280,20 @@ const AdminCourseCard = ({
               <span>{course.prerequisites.map((p) => p.code).join(", ")}</span>
             </div>
           ) : null}
-          <div className="flex items-start gap-1">
-            <span className="font-medium">Instructor:</span>
-            <span>{instructorName}</span>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-1">
+              <span className="font-medium">Instructor:</span>
+              <span>{instructorName}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onAssignInstructor(course)}
+              className="h-7 px-2"
+            >
+              <User className="h-3.5 w-3.5 mr-1" />
+              Change
+            </Button>
           </div>
         </div>
       </CardContent>

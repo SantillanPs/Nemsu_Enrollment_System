@@ -264,18 +264,16 @@ export function DashboardSidebar({
               <p className="text-sm font-medium">
                 {session?.user?.name || "User"}
               </p>
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center">
+              {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
               {/* Show verification badge for verified students */}
               {effectiveRole === "student" && session?.user?.isVerified && (
-                <div className="ml-2 flex items-center">
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                    <CheckCircle className="mr-1 h-3 w-3" />
-                    Verified
-                  </span>
-                </div>
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 ml-2">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Verified
+                </span>
               )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
               {hasRoleAccess(userRole, "SUPER_ADMIN") && activeSidebar && (
                 <span
                   className={`ml-1 ${

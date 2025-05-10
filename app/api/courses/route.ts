@@ -53,19 +53,64 @@ export async function GET() {
             const currentSemester = currentSemesterData.semester;
             console.log("Current semester data:", currentSemesterData);
 
-            // If we have a valid semester and the student has a school year, filter by those
+            // Get student's current enrollments to check which courses they've already taken
+            const studentEnrollments = await prisma.enrollment.findMany({
+              where: {
+                studentId: user.id,
+              },
+              select: {
+                courseId: true,
+                status: true,
+                course: {
+                  select: {
+                    code: true,
+                    year: true,
+                    semester: true,
+                  },
+                },
+              },
+            });
+
+            console.log(`Student has ${studentEnrollments.length} enrollments`);
+
+            // Get the list of course IDs the student has already enrolled in
+            const enrolledCourseIds = studentEnrollments.map((e) => e.courseId);
+
+            // If we have a valid semester and the student has a school year
             if (
               currentSemester &&
               currentSemester !== "NONE" &&
               user.profile?.schoolYear
             ) {
-              whereClause.semester = currentSemester;
-              whereClause.year = user.profile.schoolYear;
+              // Create an OR condition to show:
+              // 1. Courses matching current year and semester
+              // 2. Courses from previous years that the student hasn't enrolled in yet
+              whereClause = {
+                status: "OPEN",
+                OR: [
+                  // Current year and semester courses
+                  {
+                    semester: currentSemester,
+                    year: user.profile.schoolYear,
+                  },
+                  // Previous years' courses that student hasn't taken yet
+                  {
+                    year: { lt: user.profile.schoolYear },
+                    semester: currentSemester,
+                    id: { notIn: enrolledCourseIds },
+                  },
+                ],
+              };
 
-              console.log("Applying semester and year filters:", {
-                semester: currentSemester,
-                year: user.profile.schoolYear,
-              });
+              console.log(
+                "Applying advanced filters:",
+                JSON.stringify(whereClause, null, 2)
+              );
+            } else {
+              // If we don't have semester or school year, just filter by OPEN status
+              whereClause = {
+                status: "OPEN",
+              };
             }
           }
         } catch (error) {
@@ -124,27 +169,50 @@ export async function GET() {
 
     console.log(`Found ${courses.length} courses with filters:`, whereClause);
 
-    // If no courses found and we're filtering by year and semester, try with just status filter
-    if (courses.length === 0 && whereClause.year && whereClause.semester) {
+    // If no courses found with our filters, try a more relaxed approach
+    if (courses.length === 0 && whereClause.OR) {
       console.log(
-        "No courses found with year and semester filters. Trying with just status filter."
+        "No courses found with advanced filters. Trying with relaxed filters."
       );
 
-      // Try with just the status filter
-      const statusOnlyFilter = {
-        status: whereClause.status,
+      // Try with just the status filter and current semester
+      const relaxedFilter = {
+        status: "OPEN",
+        semester: whereClause.OR[0].semester, // Use the current semester from our original filter
       };
 
       courses = await prisma.course.findMany({
         include: includeOptions,
-        where: statusOnlyFilter,
+        where: relaxedFilter,
         orderBy: orderByOptions,
       });
 
       console.log(
-        `Found ${courses.length} courses with status-only filter:`,
-        statusOnlyFilter
+        `Found ${courses.length} courses with relaxed filter:`,
+        relaxedFilter
       );
+
+      // If still no courses, try with just the status filter
+      if (courses.length === 0) {
+        console.log(
+          "No courses found with relaxed filters. Trying with status-only filter."
+        );
+
+        const statusOnlyFilter = {
+          status: "OPEN",
+        };
+
+        courses = await prisma.course.findMany({
+          include: includeOptions,
+          where: statusOnlyFilter,
+          orderBy: orderByOptions,
+        });
+
+        console.log(
+          `Found ${courses.length} courses with status-only filter:`,
+          statusOnlyFilter
+        );
+      }
     }
 
     // Transform the response to map Course_B to prerequisites

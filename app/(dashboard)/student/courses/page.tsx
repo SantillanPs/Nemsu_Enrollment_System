@@ -655,6 +655,16 @@ export default function AvailableCourses() {
       return;
     }
 
+    // Don't allow selecting new courses if units are maxed out
+    if (unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits) {
+      toast({
+        title: "Units Maxed Out",
+        description: `You have reached your maximum allowed units (${unitsInfo.maxUnits}). You cannot enroll in more courses.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSelectedCourses((prev) => {
       const currentSelected = prev[groupKey] || [];
       const newSelected = currentSelected.includes(courseId)
@@ -671,6 +681,19 @@ export default function AvailableCourses() {
   const toggleSelectAll = (groupKey: string, courseIds: string[]) => {
     // Filter out already enrolled courses
     const availableCourseIds = courseIds.filter((id) => !enrolledCourseMap[id]);
+
+    // Don't allow selecting all courses if units are maxed out
+    if (
+      unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits &&
+      availableCourseIds.length > 0
+    ) {
+      toast({
+        title: "Units Maxed Out",
+        description: `You have reached your maximum allowed units (${unitsInfo.maxUnits}). You cannot enroll in more courses.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSelectedCourses((prev) => {
       const currentSelected = prev[groupKey] || [];
@@ -809,12 +832,17 @@ export default function AvailableCourses() {
           <AlertTitle className="text-blue-800">Filtered Courses</AlertTitle>
           <AlertDescription className="text-blue-700">
             You are viewing courses for{" "}
-            {currentSemester.semester === "FIRST"
+            {currentSemester.semester === "First Semester"
               ? "First Semester"
-              : currentSemester.semester === "SECOND"
+              : currentSemester.semester === "Second Semester"
               ? "Second Semester"
               : "Summer"}{" "}
-            {session?.user && "that match your current year"}
+            that match your current year.
+            <span className="font-medium">
+              {" "}
+              Courses from previous years that you haven't taken yet are also
+              shown.
+            </span>
           </AlertDescription>
         </Alert>
       )}
@@ -829,6 +857,11 @@ export default function AvailableCourses() {
             <div className="text-sm font-medium">Current Enrolled Units</div>
             <div className="text-sm font-medium">
               {unitsInfo.currentEnrolledUnits} / {unitsInfo.maxUnits} units
+              {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
+                <Badge className="ml-2 bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300">
+                  MAXED OUT
+                </Badge>
+              )}
             </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -851,9 +884,31 @@ export default function AvailableCourses() {
           <p className="text-xs text-gray-500 mt-2">
             You can enroll in courses up to your maximum allowed units (
             {unitsInfo.maxUnits}).
+            {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
+              <span className="text-red-600 font-medium ml-1">
+                You have reached your maximum allowed units and cannot enroll in
+                more courses.
+              </span>
+            )}
           </p>
         </div>
       </Card>
+
+      {/* Units Maxed Out Alert */}
+      {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
+        <Alert className="bg-red-50 border-red-200 mb-6">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800">
+            Maximum Units Reached
+          </AlertTitle>
+          <AlertDescription className="text-red-700">
+            You have reached your maximum allowed units ({unitsInfo.maxUnits}).
+            You cannot enroll in more courses until you complete some of your
+            current courses or contact an administrator to increase your unit
+            limit.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {enrollmentStatus.isEnrollmentOpen &&
         enrollmentStatus.currentPeriod &&
@@ -890,7 +945,8 @@ export default function AvailableCourses() {
               !enrollmentStatus.isEnrollmentOpen ||
               !verificationStatus.isVerified ||
               enrollingCourses.length > 0 ||
-              courses.length === 0
+              courses.length === 0 ||
+              unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits
             }
             className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white"
             size="lg"
@@ -899,6 +955,23 @@ export default function AvailableCourses() {
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Enrolling in All Courses...
+              </>
+            ) : unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits ? (
+              <>
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Units Maxed Out - Cannot Enroll
               </>
             ) : (
               <>
@@ -1008,6 +1081,10 @@ export default function AvailableCourses() {
           </p>
           <ul className="text-gray-500 dark:text-gray-400 list-disc list-inside text-left mt-2">
             <li>No courses match your current year and semester</li>
+            <li>
+              You've already enrolled in all available courses from previous
+              years
+            </li>
             <li>No enrollment period is currently active</li>
             <li>All available courses are already at capacity</li>
           </ul>
@@ -1043,11 +1120,16 @@ export default function AvailableCourses() {
                         </Badge>
                       </h2>
                       <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {group.semester === "FIRST"
+                        {group.semester === "First Semester" ||
+                        group.semester === "FIRST"
                           ? "First Semester"
-                          : group.semester === "SECOND"
+                          : group.semester === "Second Semester" ||
+                            group.semester === "SECOND"
                           ? "Second Semester"
-                          : "Summer Term"}
+                          : group.semester === "Summer" ||
+                            group.semester === "SUMMER"
+                          ? "Summer Term"
+                          : group.semester}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -1078,7 +1160,8 @@ export default function AvailableCourses() {
                           !enrollmentStatus.isEnrollmentOpen ||
                           !verificationStatus.isVerified ||
                           selectedInGroup.length === 0 ||
-                          enrollingCourses.length > 0
+                          enrollingCourses.length > 0 ||
+                          unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits
                         }
                       >
                         {enrollingCourses.length > 0 &&
@@ -1088,6 +1171,24 @@ export default function AvailableCourses() {
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Enrolling...
+                          </>
+                        ) : unitsInfo.currentEnrolledUnits >=
+                          unitsInfo.maxUnits ? (
+                          <>
+                            <svg
+                              className="w-4 h-4 mr-1.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Units Maxed Out
                           </>
                         ) : (
                           <>
@@ -1446,6 +1547,8 @@ export default function AvailableCourses() {
                                   !enrollmentStatus.isEnrollmentOpen ||
                                   !verificationStatus.isVerified ||
                                   isEnrolling ||
+                                  unitsInfo.currentEnrolledUnits >=
+                                    unitsInfo.maxUnits ||
                                   (course.prerequisites.length > 0 &&
                                     !course.prerequisites.every((p) =>
                                       completedCourseIds.includes(p.id)
@@ -1459,6 +1562,9 @@ export default function AvailableCourses() {
                                   </>
                                 ) : !verificationStatus.isVerified ? (
                                   "Account Not Verified"
+                                ) : unitsInfo.currentEnrolledUnits >=
+                                  unitsInfo.maxUnits ? (
+                                  "Units Maxed Out"
                                 ) : course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
                                     completedCourseIds.includes(p.id)

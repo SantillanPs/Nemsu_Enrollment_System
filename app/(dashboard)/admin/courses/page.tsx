@@ -59,6 +59,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import AdminCourseCard from "./components/AdminCourseCard";
+import { AssignInstructorDialog } from "./components/AssignInstructorDialog";
 
 interface Section {
   id: string;
@@ -134,6 +135,8 @@ export default function ManageCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>("");
+  const [isSavingInstructor, setIsSavingInstructor] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -264,7 +267,7 @@ export default function ManageCourses() {
     setShowSectionDialog(true);
   };
 
-  const handleAssignInstructor = async (course: Course, section: Section) => {
+  const handleAssignInstructor = async (course: Course) => {
     try {
       // Fetch faculty members if not already loaded
       if (facultyMembers.length === 0) {
@@ -280,7 +283,7 @@ export default function ManageCourses() {
       }
 
       setSelectedCourse(course);
-      setSelectedSection(section);
+      setSelectedFacultyId(course.facultyId || "none");
       setShowAssignDialog(true);
     } catch (error) {
       console.error("Error fetching faculty members:", error);
@@ -292,6 +295,58 @@ export default function ManageCourses() {
             : "Failed to fetch faculty members",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveInstructorAssignment = async () => {
+    if (!selectedCourse) return;
+
+    try {
+      setIsSavingInstructor(true);
+
+      const response = await fetch(
+        `/api/courses/${selectedCourse.id}/assign-instructor`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            facultyId: selectedFacultyId === "none" ? null : selectedFacultyId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to assign instructor");
+      }
+
+      const { data, message } = await response.json();
+
+      // Update the course in the local state
+      setCourses(
+        courses.map((course) => (course.id === data.id ? data : course))
+      );
+
+      toast({
+        title: "Success",
+        description: message,
+      });
+
+      setShowAssignDialog(false);
+    } catch (error) {
+      console.error("Error assigning instructor:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to assign instructor",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingInstructor(false);
     }
   };
 
@@ -450,6 +505,7 @@ export default function ManageCourses() {
                   course={course}
                   onDeleteCourse={handleDeleteCourse}
                   onAddSection={handleAddSection}
+                  onAssignInstructor={handleAssignInstructor}
                   getTotalEnrollments={getTotalEnrollments}
                   getTotalCapacity={getTotalCapacity}
                   onCourseUpdated={handleCourseUpdated}
@@ -485,6 +541,18 @@ export default function ManageCourses() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Assign Instructor Dialog */}
+      <AssignInstructorDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        course={selectedCourse}
+        facultyList={facultyMembers}
+        selectedFacultyId={selectedFacultyId}
+        onFacultyChange={setSelectedFacultyId}
+        onSave={handleSaveInstructorAssignment}
+        isSaving={isSavingInstructor}
+      />
     </div>
   );
 }
