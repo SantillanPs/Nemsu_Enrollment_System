@@ -1,6 +1,5 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShimmerSkeleton,
   WaveSkeleton,
@@ -113,16 +112,16 @@ export default function StudentDashboardLoading() {
                   <div>
                     <ShimmerSkeleton
                       className="h-5 w-48 mb-2"
-                      delay={`${index * 150}`}
+                      delay={index === 0 ? null : index === 1 ? "150" : "300"}
                     />
                     <ShimmerSkeleton
                       className="h-3 w-32"
-                      delay={`${index * 150 + 75}`}
+                      delay={index === 0 ? "75" : index === 1 ? "300" : "500"}
                     />
                   </div>
                   <FadeSkeleton
                     className="h-6 w-20 rounded-full"
-                    delay={`${index * 150}`}
+                    delay={index === 0 ? null : index === 1 ? "150" : "300"}
                   />
                 </div>
               ))}
@@ -137,7 +136,7 @@ export default function StudentDashboardLoading() {
               <WaveSkeleton className="h-6 w-40" delay="300" />
             </CardTitle>
             <CardDescription>
-              <WaveSkeleton className="h-4 w-56" delay="450" />
+              <WaveSkeleton className="h-4 w-56" delay="500" />
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -145,19 +144,13 @@ export default function StudentDashboardLoading() {
               {Array.from({ length: 3 }).map((_, index) => (
                 <div key={index} className="border-b pb-4">
                   <div className="flex items-center justify-between">
-                    <ShimmerSkeleton
-                      className="h-5 w-40 mb-2"
-                      delay={`${index * 150 + 300}`}
-                    />
+                    <ShimmerSkeleton className="h-5 w-40 mb-2" delay="300" />
                     <ShimmerSkeleton
                       className="h-3 w-20"
-                      delay={`${index * 150 + 375}`}
+                      delay={index === 0 ? "300" : index === 1 ? "500" : "700"}
                     />
                   </div>
-                  <ShimmerSkeleton
-                    className="h-3 w-full mt-2"
-                    delay={`${index * 150 + 450}`}
-                  />
+                  <ShimmerSkeleton className="h-3 w-full mt-2" delay="500" />
                 </div>
               ))}
             </div>
@@ -182,25 +175,16 @@ export default function StudentDashboardLoading() {
                 <div className="flex items-center justify-between">
                   <ShimmerSkeleton
                     className="h-5 w-48 mb-2"
-                    delay={`${index * 200}`}
+                    delay={index === 0 ? null : index === 1 ? "150" : "300"}
                   />
                   <ShimmerSkeleton
                     className="h-3 w-20"
-                    delay={`${index * 200 + 75}`}
+                    delay={index === 0 ? "75" : index === 1 ? "300" : "500"}
                   />
                 </div>
-                <WaveSkeleton
-                  className="h-3 w-full mt-2"
-                  delay={`${index * 200 + 150}`}
-                />
-                <WaveSkeleton
-                  className="h-3 w-full mt-2"
-                  delay={`${index * 200 + 225}`}
-                />
-                <WaveSkeleton
-                  className="h-3 w-3/4 mt-2"
-                  delay={`${index * 200 + 300}`}
-                />
+                <WaveSkeleton className="h-3 w-full mt-2" delay="150" />
+                <WaveSkeleton className="h-3 w-full mt-2" delay="300" />
+                <WaveSkeleton className="h-3 w-3/4 mt-2" delay="500" />
               </div>
             ))}
           </div>

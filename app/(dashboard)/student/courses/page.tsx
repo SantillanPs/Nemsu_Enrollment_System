@@ -19,7 +19,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Info as InfoIcon,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
@@ -81,6 +86,16 @@ export default function AvailableCourses() {
     currentPeriod: null,
     nextPeriod: null,
   });
+
+  const [currentSemester, setCurrentSemester] = useState<{
+    semester: string;
+    enrollmentPeriodId: string | null;
+    isActive: boolean;
+  }>({
+    semester: "NONE",
+    enrollmentPeriodId: null,
+    isActive: false,
+  });
   const [verificationStatus, setVerificationStatus] = useState<{
     isVerified: boolean;
     pendingDocuments: string[];
@@ -109,6 +124,7 @@ export default function AvailableCourses() {
     fetchEnrollmentStatus();
     fetchVerificationStatus();
     fetchUnitsInfo();
+    fetchCurrentSemester();
   }, []);
 
   const fetchVerificationStatus = async () => {
@@ -185,24 +201,43 @@ export default function AvailableCourses() {
 
   const fetchCourses = async () => {
     try {
+      console.log("Fetching courses...");
       const response = await fetch("/api/courses");
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch courses");
+        const errorText = await response.text();
+        console.error("Error response from /api/courses:", errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || "Failed to fetch courses");
+        } catch (parseError) {
+          throw new Error(
+            `Failed to fetch courses: ${response.status} ${response.statusText}`
+          );
+        }
       }
+
       const data = await response.json();
+      console.log("Courses API response received");
+
       if (!Array.isArray(data)) {
+        console.error("Invalid data format:", data);
         throw new Error("Invalid courses data received");
       }
 
       // Debug courses data
-      console.log("Courses data:", data);
-      console.log(
-        "Courses with prerequisites:",
-        data.filter(
-          (course) => course.prerequisites && course.prerequisites.length > 0
-        )
-      );
+      console.log(`Received ${data.length} courses`);
+      if (data.length === 0) {
+        console.log("No courses returned from API");
+      } else {
+        console.log("Sample course:", data[0]);
+        console.log(
+          "Courses with prerequisites:",
+          data.filter(
+            (course) => course.prerequisites && course.prerequisites.length > 0
+          )
+        );
+      }
 
       setCourses(data);
     } catch (error) {
@@ -274,6 +309,20 @@ export default function AvailableCourses() {
       }
     } catch (error) {
       console.error("Error fetching units information:", error);
+      // Keep default values if there's an error
+    }
+  };
+
+  const fetchCurrentSemester = async () => {
+    try {
+      const response = await fetch("/api/current-semester");
+      if (!response.ok) {
+        throw new Error("Failed to fetch current semester");
+      }
+      const data = await response.json();
+      setCurrentSemester(data);
+    } catch (error) {
+      console.error("Error fetching current semester:", error);
       // Keep default values if there's an error
     }
   };
@@ -753,6 +802,23 @@ export default function AvailableCourses() {
         </Alert>
       )}
 
+      {/* Current Semester Information */}
+      {currentSemester.semester !== "NONE" && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <InfoIcon className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Filtered Courses</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            You are viewing courses for{" "}
+            {currentSemester.semester === "FIRST"
+              ? "First Semester"
+              : currentSemester.semester === "SECOND"
+              ? "Second Semester"
+              : "Summer"}{" "}
+            {session?.user && "that match your current year"}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Units Information Card */}
       <Card className="mb-6">
         <CardHeader className="pb-3">
@@ -915,6 +981,39 @@ export default function AvailableCourses() {
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <div className="mb-4 text-gray-400">
+            <svg
+              className="w-16 h-16 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
+            No Courses Available
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md">
+            There are no courses available for enrollment at this time. This
+            could be because:
+          </p>
+          <ul className="text-gray-500 dark:text-gray-400 list-disc list-inside text-left mt-2">
+            <li>No courses match your current year and semester</li>
+            <li>No enrollment period is currently active</li>
+            <li>All available courses are already at capacity</li>
+          </ul>
+          <p className="text-gray-500 dark:text-gray-400 mt-4">
+            Try adjusting the filters above or check back later.
+          </p>
         </div>
       ) : (
         <div className="space-y-8">

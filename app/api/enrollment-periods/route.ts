@@ -121,8 +121,7 @@ export async function POST(request: Request) {
       const enrollmentData = {
         name,
         description,
-        // Skip the semester field for now as it's causing issues
-        // semester: semester === "NONE" ? null : semester,
+        semester: semester === "NONE" ? null : semester,
         startDate: start,
         endDate: end,
         isActive: isActive || false,

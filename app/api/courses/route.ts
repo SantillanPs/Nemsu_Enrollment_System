@@ -18,7 +18,9 @@ export async function GET() {
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { role: true },
+        include: {
+          profile: true,
+        },
       });
 
       console.log("User role:", user?.role);
@@ -27,10 +29,49 @@ export async function GET() {
       // For admin, faculty, and super admin, show all non-cancelled courses
       if (user && user.role.toLowerCase() === "student") {
         console.log("User is a student - filtering to show only OPEN courses");
-        // For students, we only want to show courses with status "OPEN"
+        console.log("Student profile:", user.profile);
+
+        // For students, we only want to show courses with status "OPEN" initially
         whereClause = {
           status: "OPEN",
         };
+
+        try {
+          // Get the current active semester
+          const currentSemesterResponse = await fetch(
+            `${process.env.NEXTAUTH_URL}/api/current-semester`
+          );
+
+          if (!currentSemesterResponse.ok) {
+            console.error(
+              "Failed to fetch current semester:",
+              await currentSemesterResponse.text()
+            );
+            // Continue with just the OPEN status filter
+          } else {
+            const currentSemesterData = await currentSemesterResponse.json();
+            const currentSemester = currentSemesterData.semester;
+            console.log("Current semester data:", currentSemesterData);
+
+            // If we have a valid semester and the student has a school year, filter by those
+            if (
+              currentSemester &&
+              currentSemester !== "NONE" &&
+              user.profile?.schoolYear
+            ) {
+              whereClause.semester = currentSemester;
+              whereClause.year = user.profile.schoolYear;
+
+              console.log("Applying semester and year filters:", {
+                semester: currentSemester,
+                year: user.profile.schoolYear,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching current semester:", error);
+          // Continue with just the OPEN status filter
+        }
       } else {
         console.log(
           "User is admin/faculty/super-admin - showing all non-cancelled courses"
@@ -44,43 +85,70 @@ export async function GET() {
       }
     }
 
-    const courses = await prisma.course.findMany({
-      include: {
-        faculty: {
-          include: {
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
+    // Define the include and orderBy options to reuse
+    const includeOptions = {
+      faculty: {
+        include: {
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true,
             },
           },
         },
-        Course_B: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-          },
+      },
+      Course_B: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
         },
       },
+    };
+
+    const orderByOptions = [
+      {
+        year: "asc" as const,
+      },
+      {
+        semester: "asc" as const,
+      },
+    ];
+
+    // First attempt with all filters
+    let courses = await prisma.course.findMany({
+      include: includeOptions,
       where: whereClause,
-      orderBy: [
-        {
-          year: "asc",
-        },
-        {
-          semester: "asc",
-        },
-      ],
+      orderBy: orderByOptions,
     });
 
-    if (!courses) {
-      return NextResponse.json({ error: "No courses found" }, { status: 404 });
+    console.log(`Found ${courses.length} courses with filters:`, whereClause);
+
+    // If no courses found and we're filtering by year and semester, try with just status filter
+    if (courses.length === 0 && whereClause.year && whereClause.semester) {
+      console.log(
+        "No courses found with year and semester filters. Trying with just status filter."
+      );
+
+      // Try with just the status filter
+      const statusOnlyFilter = {
+        status: whereClause.status,
+      };
+
+      courses = await prisma.course.findMany({
+        include: includeOptions,
+        where: statusOnlyFilter,
+        orderBy: orderByOptions,
+      });
+
+      console.log(
+        `Found ${courses.length} courses with status-only filter:`,
+        statusOnlyFilter
+      );
     }
 
     // Transform the response to map Course_B to prerequisites
-    const transformedCourses = courses.map((course) => {
+    const transformedCourses = courses.map((course: any) => {
       const { Course_B, ...rest } = course;
       return {
         ...rest,

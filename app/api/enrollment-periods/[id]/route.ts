@@ -106,11 +106,10 @@ export async function PATCH(
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
 
-    // Skip the semester field for now as it's causing issues
-    // We'll need to run a proper migration to add this field to the database
-    // if (semester !== undefined) {
-    //   updateData.semester = semester === "NONE" ? null : semester;
-    // }
+    // Handle semester field
+    if (semester !== undefined) {
+      updateData.semester = semester === "NONE" ? null : semester;
+    }
 
     console.log("Received dates for update:", { startDate, endDate });
 
