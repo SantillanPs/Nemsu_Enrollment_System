@@ -20,21 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
-interface Faculty {
-  id: string;
-  profile: {
-    firstName: string;
-    lastName: string;
-  };
-}
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  facultyId: string | null;
-  faculty?: Faculty;
-}
+import { Course, Faculty } from "../types";
 
 interface AssignInstructorDialogProps {
   open: boolean;

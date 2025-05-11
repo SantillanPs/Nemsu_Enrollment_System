@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -20,15 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -41,85 +32,17 @@ import {
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import {
   Search,
-  Filter,
   PlusSquare,
-  Plus,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Copy,
-  Trash2,
-  User,
   BookOpen,
-  Calendar,
-  Users,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import AdminCourseCard from "./components/AdminCourseCard";
 import { AssignInstructorDialog } from "./components/AssignInstructorDialog";
 
-interface Section {
-  id: string;
-  sectionCode: string;
-  schedule: string;
-  room: string;
-  maxStudents: number;
-  courseId: string;
-  enrollments: Enrollment[];
-}
-
-interface Enrollment {
-  id: string;
-  status: string;
-  grade: string | null;
-  studentId: string;
-  courseId: string;
-  sectionId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  student?: {
-    profile: {
-      firstName: string;
-      lastName: string;
-    };
-  };
-}
-
-interface Faculty {
-  id: string;
-  profile: {
-    firstName: string;
-    lastName: string;
-  };
-}
-
-interface Prerequisite {
-  id: string;
-  code: string;
-  name: string;
-}
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  credits: number;
-  capacity: number;
-  year: number;
-  semester: string;
-  status: string;
-  facultyId: string | null;
-  faculty?: Faculty;
-  sections: Section[];
-  enrollments: Enrollment[];
-  prerequisites: Prerequisite[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { Course, Faculty } from "./types";
 
 export default function ManageCourses() {
   const { toast } = useToast();
@@ -129,14 +52,16 @@ export default function ManageCourses() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
-  const [showSectionDialog, setShowSectionDialog] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string>("");
   const [isSavingInstructor, setIsSavingInstructor] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [courseIdToResetLoading, setCourseIdToResetLoading] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -183,11 +108,11 @@ export default function ManageCourses() {
     ...new Set(courses.map((course) => course.semester)),
   ];
 
-  // Get unique years for filter dropdowns
-  const years = [
-    "all",
-    ...new Set(courses.map((course) => course.year?.toString())),
-  ].filter(Boolean);
+  // Get unique years for filter dropdowns (commented out for now as it's not used)
+  // const years = [
+  //   "all",
+  //   ...new Set(courses.map((course) => course.year?.toString())),
+  // ].filter(Boolean);
 
   // Filter courses based on search term, semester, and status
   const filteredCourses = courses.filter((course) => {
@@ -229,6 +154,8 @@ export default function ManageCourses() {
     if (!selectedCourse) return;
 
     try {
+      setIsDeleting(true);
+
       const response = await fetch(`/api/courses/${selectedCourse.id}`, {
         method: "DELETE",
       });
@@ -258,14 +185,17 @@ export default function ManageCourses() {
           error instanceof Error ? error.message : "Failed to delete course",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const handleEditSection = (course: Course, section: Section) => {
-    setSelectedCourse(course);
-    setSelectedSection(section);
-    setShowSectionDialog(true);
-  };
+  // Commented out as it's not used currently
+  // const handleEditSection = (course: Course, section: Section) => {
+  //   setSelectedCourse(course);
+  //   // setSelectedSection(section);
+  //   // setShowSectionDialog(true);
+  // };
 
   const handleAssignInstructor = async (course: Course) => {
     try {
@@ -335,6 +265,11 @@ export default function ManageCourses() {
       });
 
       setShowAssignDialog(false);
+
+      // Reset the loading state for the course card
+      if (selectedCourse) {
+        setCourseIdToResetLoading(selectedCourse.id);
+      }
     } catch (error) {
       console.error("Error assigning instructor:", error);
       toast({
@@ -345,6 +280,11 @@ export default function ManageCourses() {
             : "Failed to assign instructor",
         variant: "destructive",
       });
+
+      // Reset the loading state for the course card on error too
+      if (selectedCourse) {
+        setCourseIdToResetLoading(selectedCourse.id);
+      }
     } finally {
       setIsSavingInstructor(false);
     }
@@ -352,8 +292,11 @@ export default function ManageCourses() {
 
   const handleAddSection = (course: Course) => {
     setSelectedCourse(course);
-    setSelectedSection(null); // No section selected means we're adding a new one
-    setShowSectionDialog(true);
+    // For now, just show a toast message since section dialog is not implemented yet
+    toast({
+      title: "Add Section",
+      description: `This feature is not fully implemented yet. You would add a section to ${course.code}: ${course.name}`,
+    });
   };
 
   // Handle course update (used by the toggle status feature)
@@ -389,14 +332,40 @@ export default function ManageCourses() {
     );
   };
 
+  // Map to store reset handlers for each course card
+  const resetHandlersRef = useRef<Map<string, (courseId: string) => void>>(
+    new Map()
+  );
+
+  // Function to register a reset handler for a course card
+  const resetInstructorLoading = (resetHandler: (courseId: string) => void) => {
+    // Store the reset handler
+    resetHandlersRef.current.set(String(Math.random()), resetHandler);
+  };
+
+  // Effect to trigger reset handlers when courseIdToResetLoading changes
+  useEffect(() => {
+    if (courseIdToResetLoading) {
+      // Call all reset handlers with the course ID
+      resetHandlersRef.current.forEach(
+        (handler: (courseId: string) => void) => {
+          handler(courseIdToResetLoading);
+        }
+      );
+
+      // Reset the state
+      setCourseIdToResetLoading(null);
+    }
+  }, [courseIdToResetLoading]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
         <h1 className="text-2xl font-bold">Manage Courses</h1>
         <div className="flex w-full sm:w-auto">
           <Link href="/admin/create-course" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto">
-              <PlusSquare className="mr-2 h-4 w-4" />
+            <Button className="w-full sm:w-auto group">
+              <PlusSquare className="mr-2 h-4 w-4 group-hover:animate-pulse" />
               Create New Course
             </Button>
           </Link>
@@ -476,6 +445,7 @@ export default function ManageCourses() {
               <h3 className="text-lg font-medium">Error Loading Courses</h3>
               <p className="text-muted-foreground mt-2">{error}</p>
               <Button className="mt-4" onClick={() => window.location.reload()}>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin hidden group-disabled:inline-flex" />
                 Try Again
               </Button>
             </div>
@@ -491,8 +461,8 @@ export default function ManageCourses() {
                   : "No courses have been created yet"}
               </p>
               <Link href="/admin/create-course">
-                <Button className="mt-4">
-                  <PlusSquare className="mr-2 h-4 w-4" />
+                <Button className="mt-4 group">
+                  <PlusSquare className="mr-2 h-4 w-4 group-hover:animate-pulse" />
                   Create New Course
                 </Button>
               </Link>
@@ -509,6 +479,7 @@ export default function ManageCourses() {
                   getTotalEnrollments={getTotalEnrollments}
                   getTotalCapacity={getTotalCapacity}
                   onCourseUpdated={handleCourseUpdated}
+                  resetInstructorLoading={resetInstructorLoading}
                 />
               ))}
             </div>
@@ -531,12 +502,20 @@ export default function ManageCourses() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 group"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -545,7 +524,14 @@ export default function ManageCourses() {
       {/* Assign Instructor Dialog */}
       <AssignInstructorDialog
         open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
+        onOpenChange={(open) => {
+          setShowAssignDialog(open);
+          // Clear loading state in AdminCourseCard when dialog is closed
+          if (!open && selectedCourse) {
+            // Reset the loading state for the course card
+            setCourseIdToResetLoading(selectedCourse.id);
+          }
+        }}
         course={selectedCourse}
         facultyList={facultyMembers}
         selectedFacultyId={selectedFacultyId}

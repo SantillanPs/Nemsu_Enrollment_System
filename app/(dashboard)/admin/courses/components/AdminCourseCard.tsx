@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -38,48 +38,8 @@ import {
   Loader2,
 } from "lucide-react";
 
-// Define types
-interface Faculty {
-  id: string;
-  profile: {
-    firstName: string;
-    lastName: string;
-  };
-}
-
-interface Prerequisite {
-  id: string;
-  code: string;
-  name: string;
-}
-
-interface Section {
-  id: string;
-  sectionCode: string;
-  schedule: string;
-  room: string;
-  maxStudents: number;
-  enrollments: any[];
-}
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  credits: number;
-  capacity: number;
-  semester: string;
-  year: number;
-  status: string;
-  facultyId: string | null;
-  faculty?: Faculty;
-  sections: Section[];
-  enrollments: any[];
-  prerequisites: Prerequisite[];
-  createdAt: string;
-  updatedAt: string;
-}
+// Import shared types
+import { Course, Section, Faculty, Prerequisite } from "../types";
 
 interface AdminCourseCardProps {
   course: Course;
@@ -89,6 +49,7 @@ interface AdminCourseCardProps {
   getTotalEnrollments: (course: Course) => number;
   getTotalCapacity: (course: Course) => number;
   onCourseUpdated: (updatedCourse: Course) => void;
+  resetInstructorLoading?: (resetHandler: (courseId: string) => void) => void;
 }
 
 const AdminCourseCard = ({
@@ -99,9 +60,14 @@ const AdminCourseCard = ({
   getTotalEnrollments,
   getTotalCapacity,
   onCourseUpdated,
+  resetInstructorLoading,
 }: AdminCourseCardProps) => {
   const { toast } = useToast();
   const [isToggling, setIsToggling] = useState(false);
+  const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
+  const [isChangingInstructorLoading, setIsChangingInstructorLoading] =
+    useState(false);
+  const [isViewDetailsLoading, setIsViewDetailsLoading] = useState(false);
 
   // Map the database status to the UI status
   const getUiStatus = (status: string) => {
@@ -175,8 +141,26 @@ const AdminCourseCard = ({
     ? `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
     : "No instructor assigned";
 
+  // Register the reset function with the parent component
+  useEffect(() => {
+    if (resetInstructorLoading) {
+      // When the parent calls this function with our course ID, we'll reset our loading state
+      const handleReset = (courseId: string) => {
+        if (courseId === course.id) {
+          setIsChangingInstructorLoading(false);
+        }
+      };
+
+      // Pass the handler to the parent
+      resetInstructorLoading(handleReset);
+    }
+  }, [course.id, resetInstructorLoading]);
+
   return (
-    <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow">
+    <Card
+      className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow admin-course-card"
+      data-course-id={course.id}
+    >
       <CardHeader className="pb-3 relative">
         <div className="absolute right-4 top-4">
           <DropdownMenu>
@@ -265,11 +249,21 @@ const AdminCourseCard = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onAddSection(course)}
+            onClick={() => {
+              setIsAddingSectionLoading(true);
+              onAddSection(course);
+              // Simulate loading for demo purposes - in real app this would be handled by the API call
+              setTimeout(() => setIsAddingSectionLoading(false), 1000);
+            }}
             className="h-7 px-2"
+            disabled={isAddingSectionLoading}
           >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add
+            {isAddingSectionLoading ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5 mr-1" />
+            )}
+            {isAddingSectionLoading ? "Adding..." : "Add"}
           </Button>
         </div>
 
@@ -288,11 +282,20 @@ const AdminCourseCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onAssignInstructor(course)}
+              onClick={() => {
+                setIsChangingInstructorLoading(true);
+                onAssignInstructor(course);
+                // Loading state will be cleared by the parent component
+              }}
               className="h-7 px-2"
+              disabled={isChangingInstructorLoading}
             >
-              <User className="h-3.5 w-3.5 mr-1" />
-              Change
+              {isChangingInstructorLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <User className="h-3.5 w-3.5 mr-1" />
+              )}
+              {isChangingInstructorLoading ? "Loading..." : "Change"}
             </Button>
           </div>
         </div>
@@ -323,8 +326,29 @@ const AdminCourseCard = ({
             />
           )}
         </div>
-        <Button variant="outline" size="sm" className="w-full" asChild>
-          <Link href={`/admin/courses/${course.id}`}>View Full Details</Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full group"
+          onClick={() => {
+            setIsViewDetailsLoading(true);
+            // In a real app, we would navigate programmatically after setting the loading state
+            // For this demo with Link, we'll just simulate loading for a moment
+            setTimeout(() => setIsViewDetailsLoading(false), 500);
+          }}
+          disabled={isViewDetailsLoading}
+          asChild
+        >
+          <Link href={`/admin/courses/${course.id}`}>
+            {isViewDetailsLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "View Full Details"
+            )}
+          </Link>
         </Button>
       </CardFooter>
     </Card>
