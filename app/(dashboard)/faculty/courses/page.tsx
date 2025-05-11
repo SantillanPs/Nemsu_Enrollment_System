@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import CourseCard from "./components/CourseCard";
+import CourseCard from "./components/OptimizedCourseCard";
 
 // Define types
 interface Student {
@@ -89,6 +89,28 @@ export default function FacultyCourses() {
   const [selectedSemester, setSelectedSemester] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
 
+  // Memoize event handlers to prevent recreation on each render
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(e.target.value);
+    },
+    []
+  );
+
+  const handleYearChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedYear(e.target.value);
+    },
+    []
+  );
+
+  const handleSemesterChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedSemester(e.target.value);
+    },
+    []
+  );
+
   // Fetch courses data
   useEffect(() => {
     const fetchCourses = async () => {
@@ -126,55 +148,65 @@ export default function FacultyCourses() {
     fetchCourses();
   }, [toast]);
 
-  // Filter courses based on search query, semester, and year
-  const filteredCourses = courses.filter((course) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchQuery.toLowerCase());
+  // Get unique years and semesters for filter dropdowns - memoized to prevent recalculation on each render
+  const years = useMemo(() => {
+    return [
+      "all",
+      ...new Set(courses.map((course) => course.year.toString())),
+    ].sort();
+  }, [courses]);
 
-    const matchesSemester =
-      selectedSemester === "all" || course.semester === selectedSemester;
-
-    const matchesYear =
-      selectedYear === "all" || course.year.toString() === selectedYear;
-
-    return matchesSearch && matchesSemester && matchesYear;
-  });
-
-  // Get unique years and semesters for filter dropdowns
-  const years = [
-    "all",
-    ...new Set(courses.map((course) => course.year.toString())),
-  ].sort();
+  // Semesters are static, so we can define them outside the component
   const semesters = ["all", "FIRST", "SECOND", "SUMMER"];
 
-  // Group courses by year and semester
-  const groupedCourses = filteredCourses.reduce((acc, course) => {
-    const year = course.year ?? 0;
-    const key = `Year ${year} - ${course.semester}`;
-    if (!acc[key]) {
-      acc[key] = {
-        year: year,
-        semester: course.semester,
-        title: key,
-        courses: [],
-      };
-    }
-    acc[key].courses.push(course);
-    return acc;
-  }, {} as Record<string, { year: number; semester: string; title: string; courses: Course[] }>);
+  // Filter courses based on search query, semester, and year - memoized to prevent recalculation on each render
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.code.toLowerCase().includes(searchQuery.toLowerCase());
 
-  // Calculate total stats
-  const totalStats = courses.reduce(
-    (acc, course) => {
-      acc.totalCourses += 1;
-      acc.totalSections += course.stats.totalSections;
-      acc.totalStudents += course.stats.approvedEnrollments;
+      const matchesSemester =
+        selectedSemester === "all" || course.semester === selectedSemester;
+
+      const matchesYear =
+        selectedYear === "all" || course.year.toString() === selectedYear;
+
+      return matchesSearch && matchesSemester && matchesYear;
+    });
+  }, [courses, searchQuery, selectedSemester, selectedYear]);
+
+  // Group courses by year and semester - memoized to prevent recalculation on each render
+  const groupedCourses = useMemo(() => {
+    return filteredCourses.reduce((acc, course) => {
+      const year = course.year ?? 0;
+      const key = `Year ${year} - ${course.semester}`;
+      if (!acc[key]) {
+        acc[key] = {
+          year: year,
+          semester: course.semester,
+          title: key,
+          courses: [],
+        };
+      }
+      acc[key].courses.push(course);
       return acc;
-    },
-    { totalCourses: 0, totalSections: 0, totalStudents: 0 }
-  );
+    }, {} as Record<string, { year: number; semester: string; title: string; courses: Course[] }>);
+  }, [filteredCourses]);
+
+  // Calculate total stats - memoized to prevent recalculation on each render
+  const totalStats = useMemo(() => {
+    return courses.reduce(
+      (acc, course) => {
+        acc.totalCourses += 1;
+        acc.totalSections += course.stats.totalSections;
+        acc.totalStudents += course.stats.approvedEnrollments;
+        return acc;
+      },
+      { totalCourses: 0, totalSections: 0, totalStudents: 0 }
+    );
+  }, [courses]);
 
   return (
     <div className="space-y-6">
@@ -231,14 +263,14 @@ export default function FacultyCourses() {
             placeholder="Search courses..."
             className="pl-8"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
         <div className="flex gap-2">
           <select
             className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
+            onChange={handleYearChange}
           >
             <option value="all">All Years</option>
             {years
@@ -252,7 +284,7 @@ export default function FacultyCourses() {
           <select
             className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={selectedSemester}
-            onChange={(e) => setSelectedSemester(e.target.value)}
+            onChange={handleSemesterChange}
           >
             <option value="all">All Semesters</option>
             {semesters
@@ -290,30 +322,66 @@ export default function FacultyCourses() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
-          {Object.values(groupedCourses)
-            .sort((a, b) => {
-              // Sort by year first, then by semester
-              if (a.year !== b.year) return a.year - b.year;
-
-              const semesterOrder = { FIRST: 1, SECOND: 2, SUMMER: 3 };
-              return (
-                semesterOrder[a.semester as keyof typeof semesterOrder] -
-                semesterOrder[b.semester as keyof typeof semesterOrder]
-              );
-            })
-            .map((group) => (
-              <div key={group.title} className="space-y-4">
-                <h2 className="text-xl font-semibold">{group.title}</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {group.courses.map((course) => (
-                    <CourseCard key={course.id} course={course} />
-                  ))}
-                </div>
-              </div>
-            ))}
-        </div>
+        <CourseGroups groupedCourses={groupedCourses} />
       )}
     </div>
   );
 }
+
+// Memoized component for rendering course groups
+const CourseGroups = memo(
+  ({
+    groupedCourses,
+  }: {
+    groupedCourses: Record<
+      string,
+      { year: number; semester: string; title: string; courses: Course[] }
+    >;
+  }) => {
+    // Memoize the sorted groups to prevent recalculation on each render
+    const sortedGroups = useMemo(() => {
+      return Object.values(groupedCourses).sort((a, b) => {
+        // Sort by year first, then by semester
+        if (a.year !== b.year) return a.year - b.year;
+
+        const semesterOrder = { FIRST: 1, SECOND: 2, SUMMER: 3 };
+        return (
+          semesterOrder[a.semester as keyof typeof semesterOrder] -
+          semesterOrder[b.semester as keyof typeof semesterOrder]
+        );
+      });
+    }, [groupedCourses]);
+
+    return (
+      <div className="space-y-8">
+        {sortedGroups.map((group) => (
+          <CourseGroup key={group.title} group={group} />
+        ))}
+      </div>
+    );
+  }
+);
+
+CourseGroups.displayName = "CourseGroups";
+
+// Memoized component for rendering a single course group
+const CourseGroup = memo(
+  ({
+    group,
+  }: {
+    group: { year: number; semester: string; title: string; courses: Course[] };
+  }) => {
+    return (
+      <div key={group.title} className="space-y-4">
+        <h2 className="text-xl font-semibold">{group.title}</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {group.courses.map((course) => (
+            <CourseCard key={course.id} course={course} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+
+CourseGroup.displayName = "CourseGroup";

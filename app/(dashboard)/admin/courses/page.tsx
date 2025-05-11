@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -39,7 +39,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import AdminCourseCard from "./components/AdminCourseCard";
+import AdminCourseCard from "./components/OptimizedAdminCourseCard";
 import { AssignInstructorDialog } from "./components/AssignInstructorDialog";
 
 import { Course, Faculty } from "./types";
@@ -62,6 +62,26 @@ export default function ManageCourses() {
   const [courseIdToResetLoading, setCourseIdToResetLoading] = useState<
     string | null
   >(null);
+
+  // Memoize event handlers to prevent recreation on each render
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    },
+    []
+  );
+
+  const handleSemesterChange = useCallback((value: string) => {
+    setSelectedSemester(value);
+  }, []);
+
+  const handleStatusChange = useCallback((value: string) => {
+    setSelectedStatus(value);
+  }, []);
+
+  const handleActiveOnlyChange = useCallback((checked: boolean) => {
+    setShowActiveOnly(checked);
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -102,53 +122,67 @@ export default function ManageCourses() {
   // Faculty members will be fetched when needed for assigning to sections
   const [facultyMembers, setFacultyMembers] = useState<Faculty[]>([]);
 
-  // Get unique semesters for filter dropdowns
-  const semesters = [
-    "all",
-    ...new Set(courses.map((course) => course.semester)),
-  ];
+  // Get unique semesters for filter dropdowns - memoized to prevent recalculation on each render
+  const semesters = useMemo(() => {
+    return ["all", ...new Set(courses.map((course) => course.semester))];
+  }, [courses]);
 
   // Get unique years for filter dropdowns (commented out for now as it's not used)
-  // const years = [
-  //   "all",
-  //   ...new Set(courses.map((course) => course.year?.toString())),
-  // ].filter(Boolean);
+  // const years = useMemo(() => {
+  //   return [
+  //     "all",
+  //     ...new Set(courses.map((course) => course.year?.toString())),
+  //   ].filter(Boolean);
+  // }, [courses]);
 
-  // Filter courses based on search term, semester, and status
-  const filteredCourses = courses.filter((course) => {
-    const matchesSearch =
-      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.faculty?.profile &&
-        `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()));
+  // Map database status to UI status - utility function
+  const getUiStatus = useCallback((status: string) => {
+    return status === "OPEN"
+      ? "active"
+      : status === "CLOSED"
+      ? "inactive"
+      : status.toLowerCase();
+  }, []);
 
-    const matchesSemester =
-      selectedSemester === "all" || course.semester === selectedSemester;
+  // Filter courses based on search term, semester, and status - memoized to prevent recalculation on each render
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
+      const matchesSearch =
+        course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (course.faculty?.profile &&
+          `${course.faculty.profile.firstName} ${course.faculty.profile.lastName}`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
 
-    // Map the database status to the UI status
-    const uiStatus =
-      course.status === "OPEN"
-        ? "active"
-        : course.status === "CLOSED"
-        ? "inactive"
-        : course.status.toLowerCase();
+      const matchesSemester =
+        selectedSemester === "all" || course.semester === selectedSemester;
 
-    const matchesStatus =
-      selectedStatus === "all" || uiStatus === selectedStatus;
+      // Map the database status to the UI status
+      const uiStatus = getUiStatus(course.status);
 
-    const matchesActiveOnly = !showActiveOnly || uiStatus === "active";
+      const matchesStatus =
+        selectedStatus === "all" || uiStatus === selectedStatus;
 
-    return (
-      matchesSearch && matchesSemester && matchesStatus && matchesActiveOnly
-    );
-  });
+      const matchesActiveOnly = !showActiveOnly || uiStatus === "active";
 
-  const handleDeleteCourse = (course: Course) => {
+      return (
+        matchesSearch && matchesSemester && matchesStatus && matchesActiveOnly
+      );
+    });
+  }, [
+    courses,
+    searchTerm,
+    selectedSemester,
+    selectedStatus,
+    showActiveOnly,
+    getUiStatus,
+  ]);
+
+  const handleDeleteCourse = useCallback((course: Course) => {
     setSelectedCourse(course);
     setShowDeleteDialog(true);
-  };
+  }, []);
 
   const confirmDelete = async () => {
     if (!selectedCourse) return;
@@ -197,38 +231,43 @@ export default function ManageCourses() {
   //   // setShowSectionDialog(true);
   // };
 
-  const handleAssignInstructor = async (course: Course) => {
-    try {
-      // Fetch faculty members if not already loaded
-      if (facultyMembers.length === 0) {
-        const response = await fetch("/api/faculty");
+  const handleAssignInstructor = useCallback(
+    async (course: Course) => {
+      try {
+        // Fetch faculty members if not already loaded
+        if (facultyMembers.length === 0) {
+          const response = await fetch("/api/faculty");
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch faculty members");
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.error || "Failed to fetch faculty members"
+            );
+          }
+
+          const data = await response.json();
+          setFacultyMembers(data);
         }
 
-        const data = await response.json();
-        setFacultyMembers(data);
+        setSelectedCourse(course);
+        setSelectedFacultyId(course.facultyId || "none");
+        setShowAssignDialog(true);
+      } catch (error) {
+        console.error("Error fetching faculty members:", error);
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch faculty members",
+          variant: "destructive",
+        });
       }
+    },
+    [facultyMembers.length, toast]
+  );
 
-      setSelectedCourse(course);
-      setSelectedFacultyId(course.facultyId || "none");
-      setShowAssignDialog(true);
-    } catch (error) {
-      console.error("Error fetching faculty members:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch faculty members",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSaveInstructorAssignment = async () => {
+  const handleSaveInstructorAssignment = useCallback(async () => {
     if (!selectedCourse) return;
 
     try {
@@ -288,28 +327,34 @@ export default function ManageCourses() {
     } finally {
       setIsSavingInstructor(false);
     }
-  };
+  }, [selectedCourse, selectedFacultyId, courses, toast]);
 
-  const handleAddSection = (course: Course) => {
-    setSelectedCourse(course);
-    // For now, just show a toast message since section dialog is not implemented yet
-    toast({
-      title: "Add Section",
-      description: `This feature is not fully implemented yet. You would add a section to ${course.code}: ${course.name}`,
-    });
-  };
+  const handleAddSection = useCallback(
+    (course: Course) => {
+      setSelectedCourse(course);
+      // For now, just show a toast message since section dialog is not implemented yet
+      toast({
+        title: "Add Section",
+        description: `This feature is not fully implemented yet. You would add a section to ${course.code}: ${course.name}`,
+      });
+    },
+    [toast]
+  );
 
   // Handle course update (used by the toggle status feature)
-  const handleCourseUpdated = (updatedCourse: Course) => {
-    setCourses(
-      courses.map((course) =>
-        course.id === updatedCourse.id ? updatedCourse : course
-      )
-    );
-  };
+  const handleCourseUpdated = useCallback(
+    (updatedCourse: Course) => {
+      setCourses(
+        courses.map((course) =>
+          course.id === updatedCourse.id ? updatedCourse : course
+        )
+      );
+    },
+    [courses]
+  );
 
   // Calculate total enrollments for a course across all sections
-  const getTotalEnrollments = (course: Course) => {
+  const getTotalEnrollments = useCallback((course: Course) => {
     if (!course.sections || course.sections.length === 0) {
       return course.enrollments?.length || 0;
     }
@@ -318,10 +363,10 @@ export default function ManageCourses() {
       (total, section) => total + (section.enrollments?.length || 0),
       0
     );
-  };
+  }, []);
 
   // Calculate total capacity for a course across all sections
-  const getTotalCapacity = (course: Course) => {
+  const getTotalCapacity = useCallback((course: Course) => {
     if (!course.sections || course.sections.length === 0) {
       return course.capacity || 0;
     }
@@ -330,7 +375,7 @@ export default function ManageCourses() {
       (total, section) => total + (section.maxStudents || 0),
       0
     );
-  };
+  }, []);
 
   // Map to store reset handlers for each course card
   const resetHandlersRef = useRef<Map<string, (courseId: string) => void>>(
@@ -338,10 +383,13 @@ export default function ManageCourses() {
   );
 
   // Function to register a reset handler for a course card
-  const resetInstructorLoading = (resetHandler: (courseId: string) => void) => {
-    // Store the reset handler
-    resetHandlersRef.current.set(String(Math.random()), resetHandler);
-  };
+  const resetInstructorLoading = useCallback(
+    (resetHandler: (courseId: string) => void) => {
+      // Store the reset handler
+      resetHandlersRef.current.set(String(Math.random()), resetHandler);
+    },
+    []
+  );
 
   // Effect to trigger reset handlers when courseIdToResetLoading changes
   useEffect(() => {
@@ -357,6 +405,51 @@ export default function ManageCourses() {
       setCourseIdToResetLoading(null);
     }
   }, [courseIdToResetLoading]);
+
+  // Memoized CourseGrid component to prevent unnecessary re-renders
+  interface CourseGridProps {
+    courses: Course[];
+    onDeleteCourse: (course: Course) => void;
+    onAddSection: (course: Course) => void;
+    onAssignInstructor: (course: Course) => void;
+    getTotalEnrollments: (course: Course) => number;
+    getTotalCapacity: (course: Course) => number;
+    onCourseUpdated: (updatedCourse: Course) => void;
+    resetInstructorLoading: (resetHandler: (courseId: string) => void) => void;
+  }
+
+  const CourseGrid = memo(
+    ({
+      courses,
+      onDeleteCourse,
+      onAddSection,
+      onAssignInstructor,
+      getTotalEnrollments,
+      getTotalCapacity,
+      onCourseUpdated,
+      resetInstructorLoading,
+    }: CourseGridProps) => {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => (
+            <AdminCourseCard
+              key={course.id}
+              course={course}
+              onDeleteCourse={onDeleteCourse}
+              onAddSection={onAddSection}
+              onAssignInstructor={onAssignInstructor}
+              getTotalEnrollments={getTotalEnrollments}
+              getTotalCapacity={getTotalCapacity}
+              onCourseUpdated={onCourseUpdated}
+              resetInstructorLoading={resetInstructorLoading}
+            />
+          ))}
+        </div>
+      );
+    }
+  );
+
+  CourseGrid.displayName = "CourseGrid";
 
   return (
     <div className="space-y-6">
@@ -380,14 +473,14 @@ export default function ManageCourses() {
             placeholder="Search by title, code, or instructor..."
             className="pl-8 w-full"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Select
               value={selectedSemester}
-              onValueChange={setSelectedSemester}
+              onValueChange={handleSemesterChange}
             >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by semester" />
@@ -402,7 +495,7 @@ export default function ManageCourses() {
             </Select>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <Select value={selectedStatus} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -418,7 +511,7 @@ export default function ManageCourses() {
             <Switch
               id="active-only"
               checked={showActiveOnly}
-              onCheckedChange={setShowActiveOnly}
+              onCheckedChange={handleActiveOnlyChange}
             />
             <Label htmlFor="active-only">Active Only</Label>
           </div>
@@ -468,21 +561,16 @@ export default function ManageCourses() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course) => (
-                <AdminCourseCard
-                  key={course.id}
-                  course={course}
-                  onDeleteCourse={handleDeleteCourse}
-                  onAddSection={handleAddSection}
-                  onAssignInstructor={handleAssignInstructor}
-                  getTotalEnrollments={getTotalEnrollments}
-                  getTotalCapacity={getTotalCapacity}
-                  onCourseUpdated={handleCourseUpdated}
-                  resetInstructorLoading={resetInstructorLoading}
-                />
-              ))}
-            </div>
+            <CourseGrid
+              courses={filteredCourses}
+              onDeleteCourse={handleDeleteCourse}
+              onAddSection={handleAddSection}
+              onAssignInstructor={handleAssignInstructor}
+              getTotalEnrollments={getTotalEnrollments}
+              getTotalCapacity={getTotalCapacity}
+              onCourseUpdated={handleCourseUpdated}
+              resetInstructorLoading={resetInstructorLoading}
+            />
           )}
         </CardContent>
       </Card>
