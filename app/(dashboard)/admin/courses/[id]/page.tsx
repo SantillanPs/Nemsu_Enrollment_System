@@ -85,7 +85,7 @@ interface SectionFormData {
   sectionCode: string;
   schedule: string;
   room: string;
-  maxStudents: number;
+  maxStudents: number | string;
 }
 
 export default function CourseDetails() {
@@ -164,7 +164,14 @@ export default function CourseDetails() {
     const { name, value } = e.target;
     setSectionFormData({
       ...sectionFormData,
-      [name]: name === "maxStudents" ? parseInt(value) : value,
+      [name]:
+        name === "maxStudents"
+          ? value === ""
+            ? ""
+            : isNaN(parseInt(value))
+            ? ""
+            : parseInt(value)
+          : value,
     });
   };
 
@@ -195,18 +202,21 @@ export default function CourseDetails() {
   // Handle save section (add or edit)
   const handleSaveSection = async () => {
     try {
-      if (
-        !sectionFormData.sectionCode ||
-        !sectionFormData.schedule ||
-        !sectionFormData.room
-      ) {
+      // Form validation
+      if (!sectionFormData.sectionCode || !sectionFormData.room) {
         toast({
           title: "Missing Information",
-          description: "Please fill in all required fields.",
+          description: "Section code and room are required fields.",
           variant: "destructive",
         });
         return;
       }
+
+      // Show loading toast
+      toast({
+        title: selectedSection ? "Updating Section..." : "Creating Section...",
+        description: "Please wait while we process your request.",
+      });
 
       if (selectedSection) {
         // Edit existing section
@@ -222,7 +232,8 @@ export default function CourseDetails() {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to update section");
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to update section");
         }
 
         const data = await response.json();
@@ -243,40 +254,78 @@ export default function CourseDetails() {
         });
       } else {
         // Add new section
-        const response = await fetch(`/api/courses/${courseId}/sections`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(sectionFormData),
-        });
+        console.log("Adding new section:", sectionFormData);
 
-        if (!response.ok) {
-          throw new Error("Failed to add section");
-        }
+        // Ensure maxStudents is a number
+        const formDataToSend = {
+          ...sectionFormData,
+          maxStudents:
+            typeof sectionFormData.maxStudents === "string" &&
+            sectionFormData.maxStudents.trim() === ""
+              ? 30
+              : typeof sectionFormData.maxStudents === "string"
+              ? parseInt(sectionFormData.maxStudents) || 30
+              : sectionFormData.maxStudents || 30,
+        };
 
-        const data = await response.json();
-
-        // Update the course data with the new section
-        if (course) {
-          setCourse({
-            ...course,
-            sections: [...course.sections, data.section],
+        try {
+          const response = await fetch(`/api/courses/${courseId}/sections`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formDataToSend),
           });
-        }
 
-        toast({
-          title: "Section Added",
-          description: "The section has been added successfully.",
-        });
+          console.log("Response status:", response.status);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+
+            let errorMessage = "Failed to add section";
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              // If JSON parsing fails, use the error text
+              if (errorText) errorMessage = errorText;
+            }
+
+            throw new Error(errorMessage);
+          }
+
+          const data = await response.json();
+          console.log("Section created successfully:", data);
+
+          // Update the course data with the new section
+          if (course) {
+            setCourse({
+              ...course,
+              sections: [...course.sections, data.section],
+            });
+          }
+
+          toast({
+            title: "Section Added",
+            description: "The section has been added successfully.",
+          });
+        } catch (innerError) {
+          console.error("Inner error:", innerError);
+          throw innerError;
+        }
       }
 
+      // Close the dialog
       setShowSectionDialog(false);
     } catch (error) {
       console.error("Error saving section:", error);
       toast({
         title: "Error",
-        description: "Failed to save section. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save section. Please try again.",
         variant: "destructive",
       });
     }
@@ -317,7 +366,8 @@ export default function CourseDetails() {
         throw new Error("Failed to assign instructor");
       }
 
-      const data = await response.json();
+      // Get response data but we don't need to use it directly
+      await response.json();
 
       // Refresh course data to get updated instructor information
       const courseResponse = await fetch(`/api/courses/${courseId}`);
@@ -447,7 +497,7 @@ export default function CourseDetails() {
   };
 
   // Get instructor name if available
-  const getInstructorName = (section: Section) => {
+  const getInstructorName = (_section: Section) => {
     // This is a placeholder - in a real implementation, you would get the instructor name from the section data
     // For now, we'll use the course faculty if available
     if (course?.faculty?.profile) {

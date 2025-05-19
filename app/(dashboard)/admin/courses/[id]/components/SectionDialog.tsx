@@ -32,7 +32,7 @@ interface SectionFormData {
   sectionCode: string;
   schedule: string;
   room: string;
-  maxStudents: number;
+  maxStudents: number | string;
 }
 
 interface SectionDialogProps {
@@ -56,13 +56,30 @@ export function SectionDialog({
   formData,
   onFormChange,
 }: SectionDialogProps) {
-  const [days, setDays] = useState<string>("");
-  const [time, setTime] = useState<string>("");
+  const [days, setDays] = useState<string>("none");
+  const [time, setTime] = useState<string>("none");
 
   // Update schedule when days or time changes
   useEffect(() => {
-    if (days && time) {
-      const newSchedule = `${days} ${time}`;
+    // Skip if the dialog is not open
+    if (!open) return;
+
+    // Handle the "none" value as empty string
+    const effectiveDays = days === "none" ? "" : days;
+    const effectiveTime = time === "none" ? "" : time;
+
+    // Create the new schedule string
+    const newSchedule =
+      effectiveDays && effectiveTime
+        ? `${effectiveDays} ${effectiveTime}`
+        : effectiveDays
+        ? `${effectiveDays} (Time TBD)`
+        : effectiveTime
+        ? `(Days TBD) ${effectiveTime}`
+        : "TBD";
+
+    // Only update if the schedule has actually changed
+    if (newSchedule !== formData.schedule) {
       const event = {
         target: {
           name: "schedule",
@@ -71,23 +88,38 @@ export function SectionDialog({
       } as React.ChangeEvent<HTMLInputElement>;
       onFormChange(event);
     }
-  }, [days, time, onFormChange]);
+  }, [days, time, open, formData.schedule, onFormChange]);
 
-  // Parse schedule into days and time when editing
+  // Parse schedule into days and time when editing or when dialog opens/closes
   useEffect(() => {
-    if (selectedSection?.schedule) {
-      const parts = selectedSection.schedule.split(" ");
-      if (parts.length >= 3) {
-        const scheduleDays = parts.slice(0, parts.length - 2).join(" ");
-        const scheduleTime = parts.slice(parts.length - 2).join(" ");
-        setDays(scheduleDays);
-        setTime(scheduleTime);
+    // Only run this effect when the dialog opens
+    if (!open) return;
+
+    // If we have a selected section with a valid schedule
+    if (selectedSection?.schedule && selectedSection.schedule !== "TBD") {
+      try {
+        const parts = selectedSection.schedule.split(" ");
+        if (parts.length >= 3) {
+          const scheduleDays = parts.slice(0, parts.length - 2).join(" ");
+          const scheduleTime = parts.slice(parts.length - 2).join(" ");
+          setDays(scheduleDays);
+          setTime(scheduleTime);
+        } else {
+          // Handle simple schedule format
+          setDays("none");
+          setTime("none");
+        }
+      } catch (error) {
+        console.error("Error parsing schedule:", error);
+        setDays("none");
+        setTime("none");
       }
     } else {
-      setDays("");
-      setTime("");
+      // Reset when adding a new section or when schedule is TBD
+      setDays("none");
+      setTime("none");
     }
-  }, [selectedSection]);
+  }, [selectedSection, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,39 +142,53 @@ export function SectionDialog({
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sectionCode">Section Code</Label>
+            <Label htmlFor="sectionCode">
+              Section Code<span className="text-red-500">*</span>
+            </Label>
             <Input
               id="sectionCode"
               name="sectionCode"
               placeholder="e.g., A, B, C"
               value={formData.sectionCode}
               onChange={onFormChange}
+              required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="days">Days</Label>
+              <Label htmlFor="days">
+                Days <span className="text-gray-400 text-xs">(Optional)</span>
+              </Label>
               <Select value={days} onValueChange={setDays}>
-                <SelectTrigger>
+                <SelectTrigger id="days">
                   <SelectValue placeholder="Select days" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="Mon, Wed">Monday, Wednesday</SelectItem>
                   <SelectItem value="Tue, Thu">Tuesday, Thursday</SelectItem>
                   <SelectItem value="Mon, Wed, Fri">
                     Monday, Wednesday, Friday
                   </SelectItem>
                   <SelectItem value="Tue, Fri">Tuesday, Friday</SelectItem>
+                  <SelectItem value="Mon">Monday</SelectItem>
+                  <SelectItem value="Tue">Tuesday</SelectItem>
+                  <SelectItem value="Wed">Wednesday</SelectItem>
+                  <SelectItem value="Thu">Thursday</SelectItem>
+                  <SelectItem value="Fri">Friday</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time">
+                Time <span className="text-gray-400 text-xs">(Optional)</span>
+              </Label>
               <Select value={time} onValueChange={setTime}>
-                <SelectTrigger>
+                <SelectTrigger id="time">
                   <SelectValue placeholder="Select time" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="9:00 AM - 10:30 AM">
                     9:00 AM - 10:30 AM
                   </SelectItem>
@@ -160,13 +206,16 @@ export function SectionDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="room">Location</Label>
+            <Label htmlFor="room">
+              Location<span className="text-red-500">*</span>
+            </Label>
             <Input
               id="room"
               name="room"
               placeholder="e.g., Science Building, Room 301"
               value={formData.room}
               onChange={onFormChange}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -177,7 +226,7 @@ export function SectionDialog({
               type="number"
               min="1"
               placeholder="e.g., 30"
-              value={formData.maxStudents}
+              value={formData.maxStudents === "" ? "" : formData.maxStudents}
               onChange={onFormChange}
             />
           </div>
@@ -186,7 +235,10 @@ export function SectionDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onSave}>
+          <Button
+            onClick={onSave}
+            disabled={!formData.sectionCode || !formData.room}
+          >
             {selectedSection ? "Save Changes" : "Add Section"}
           </Button>
         </DialogFooter>

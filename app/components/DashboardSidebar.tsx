@@ -220,7 +220,7 @@ export function DashboardSidebar({
     portalTitles.student;
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-white dark:bg-gray-800 shadow-sm">
+    <div className="flex h-full w-64 flex-col border-r bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
       <div
         className={`flex h-16 items-center justify-between border-b px-6 bg-gradient-to-r ${currentTheme.gradient}`}
       >
@@ -298,7 +298,7 @@ export function DashboardSidebar({
           </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="flex-1 space-y-1 px-3 py-2 overflow-hidden">
         {navigation.map((item) => {
           // Handle dividers
           if (item.isDivider) {

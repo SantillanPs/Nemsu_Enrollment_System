@@ -11,6 +11,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Select,
@@ -38,13 +39,36 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Loader2, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  Loader2,
+  Calendar,
+  Clock,
+  Search,
+  CheckCircle2,
+  CalendarDays,
+  BookOpen,
+  Users,
+  ClipboardList,
+  Plus,
+} from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, InfoIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Define types
 interface Course {
@@ -64,6 +88,366 @@ interface Course {
   prerequisites?: any[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Course Selection Dialog Component
+interface CourseSelectionDialogProps {
+  courses: Course[];
+  selectedCourseIds: string[];
+  onSelectionChange: (courseIds: string[]) => void;
+}
+
+function CourseSelectionDialog({
+  courses,
+  selectedCourseIds,
+  onSelectionChange,
+}: CourseSelectionDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [dialogSearchQuery, setDialogSearchQuery] = useState("");
+  const [dialogSelectedIds, setDialogSelectedIds] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Filter courses based on search query
+  const filteredDialogCourses = useMemo(() => {
+    if (!dialogSearchQuery.trim()) {
+      return courses;
+    } else {
+      const query = dialogSearchQuery.toLowerCase().trim();
+      return courses.filter(
+        (course) =>
+          course.code.toLowerCase().includes(query) ||
+          course.name.toLowerCase().includes(query)
+      );
+    }
+  }, [dialogSearchQuery, courses]);
+
+  // Initialize dialog selection state when opened
+  useEffect(() => {
+    if (open) {
+      setDialogSelectedIds(selectedCourseIds);
+    }
+  }, [open, selectedCourseIds]);
+
+  // Handle selection changes
+  const handleToggleCourse = (courseId: string) => {
+    setDialogSelectedIds((prev) => {
+      if (prev.includes(courseId)) {
+        return prev.filter((id) => id !== courseId);
+      } else {
+        return [...prev, courseId];
+      }
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    setDialogSelectedIds(filteredDialogCourses.map((c) => c.id));
+  };
+
+  // Handle clear all
+  const handleClearAll = () => {
+    setDialogSelectedIds([]);
+  };
+
+  // Save selection and close dialog
+  const handleSave = () => {
+    onSelectionChange(dialogSelectedIds);
+    setOpen(false);
+  };
+
+  // Group courses by year and semester for better organization
+  const groupedCourses = useMemo(() => {
+    const groups: Record<string, Course[]> = {};
+
+    filteredDialogCourses.forEach((course) => {
+      const key = `Year ${course.year} - ${course.semester}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(course);
+    });
+
+    return groups;
+  }, [filteredDialogCourses]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-between text-left font-normal h-10 px-3 py-2 bg-white border-gray-200 hover:bg-gray-50 hover:border-blue-300"
+        >
+          <span className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-blue-500" />
+            {selectedCourseIds.length === 0 ? (
+              <span className="text-muted-foreground">Select courses...</span>
+            ) : (
+              <span className="text-gray-700">
+                {selectedCourseIds.length} course
+                {selectedCourseIds.length !== 1 ? "s" : ""} selected
+              </span>
+            )}
+          </span>
+          <Plus className="h-4 w-4 text-blue-500" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+          <DialogTitle className="text-xl font-semibold text-white mb-1">
+            Select Courses
+          </DialogTitle>
+          <DialogDescription className="text-blue-100 opacity-90">
+            Choose the courses you want to include in your schedule
+          </DialogDescription>
+        </div>
+
+        <div className="p-6 space-y-5 overflow-hidden">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by course code or name..."
+                className="pl-10 py-2 text-sm bg-gray-50 border-gray-200 rounded-md w-full focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                value={dialogSearchQuery}
+                onChange={(e) => setDialogSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-xs px-2 py-1 h-8",
+                  viewMode === "grid"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600"
+                )}
+                onClick={() => setViewMode("grid")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-1"
+                >
+                  <rect width="7" height="7" x="3" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="14" rx="1" />
+                  <rect width="7" height="7" x="3" y="14" rx="1" />
+                </svg>
+                Grid
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-xs px-2 py-1 h-8",
+                  viewMode === "list"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600"
+                )}
+                onClick={() => setViewMode("list")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-1"
+                >
+                  <line x1="8" x2="21" y1="6" y2="6" />
+                  <line x1="8" x2="21" y1="12" y2="12" />
+                  <line x1="8" x2="21" y1="18" y2="18" />
+                  <line x1="3" x2="3.01" y1="6" y2="6" />
+                  <line x1="3" x2="3.01" y1="12" y2="12" />
+                  <line x1="3" x2="3.01" y1="18" y2="18" />
+                </svg>
+                List
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
+                onClick={handleSelectAll}
+              >
+                Select All
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 border-gray-200 text-gray-700 hover:bg-gray-50"
+                onClick={handleClearAll}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+
+          <div className="border rounded-lg overflow-hidden shadow-sm bg-white">
+            <div className="max-h-[50vh] overflow-y-auto">
+              {Object.keys(groupedCourses).length > 0 ? (
+                Object.entries(groupedCourses).map(([group, groupCourses]) => (
+                  <div key={group} className="border-b last:border-b-0">
+                    <div className="bg-gray-50 px-4 py-2 font-medium text-sm text-gray-700 sticky top-0 z-10">
+                      {group}
+                    </div>
+                    {viewMode === "grid" ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
+                        {groupCourses.map((course) => (
+                          <div
+                            key={course.id}
+                            className={cn(
+                              "flex flex-col rounded-md border p-3 cursor-pointer transition-all",
+                              dialogSelectedIds.includes(course.id)
+                                ? "bg-blue-50 border-blue-300 shadow-sm"
+                                : "hover:border-blue-200 hover:bg-gray-50"
+                            )}
+                            onClick={() => handleToggleCourse(course.id)}
+                          >
+                            <div className="flex items-start mb-2">
+                              <Checkbox
+                                id={`dialog-course-${course.id}`}
+                                checked={dialogSelectedIds.includes(course.id)}
+                                onCheckedChange={() =>
+                                  handleToggleCourse(course.id)
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-1 mr-3"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900">
+                                  {course.code}
+                                </div>
+                                <div className="text-sm text-gray-700 line-clamp-2 mt-0.5">
+                                  {course.name}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-auto pt-2 text-xs text-gray-500">
+                              <span>
+                                {course.credits}{" "}
+                                {course.credits === 1 ? "unit" : "units"}
+                              </span>
+                              {course.capacity && (
+                                <span>Capacity: {course.capacity}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-100">
+                        {groupCourses.map((course) => (
+                          <div
+                            key={course.id}
+                            className={cn(
+                              "flex items-center p-3 cursor-pointer transition-colors",
+                              dialogSelectedIds.includes(course.id)
+                                ? "bg-blue-50 hover:bg-blue-100"
+                                : "hover:bg-gray-50"
+                            )}
+                            onClick={() => handleToggleCourse(course.id)}
+                          >
+                            <Checkbox
+                              id={`dialog-course-${course.id}`}
+                              checked={dialogSelectedIds.includes(course.id)}
+                              onCheckedChange={() =>
+                                handleToggleCourse(course.id)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                              className="mr-3"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {course.code}
+                              </div>
+                              <div className="text-sm text-gray-500 truncate">
+                                {course.name}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="ml-2 bg-white">
+                              {course.credits}{" "}
+                              {course.credits === 1 ? "unit" : "units"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Search className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-700 font-medium">
+                    No courses match your search
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Try adjusting your search criteria
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium text-blue-600">
+                {dialogSelectedIds.length}
+              </span>{" "}
+              of {filteredDialogCourses.length} courses selected
+            </div>
+            {dialogSelectedIds.length > 0 && (
+              <div className="flex items-center text-sm text-green-600">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                {dialogSelectedIds.length} course
+                {dialogSelectedIds.length !== 1 ? "s" : ""} selected
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t p-4 flex justify-end gap-2 bg-gray-50">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            className="border-gray-300"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={dialogSelectedIds.length === 0}
+          >
+            {dialogSelectedIds.length > 0 ? (
+              <>Save Selection ({dialogSelectedIds.length})</>
+            ) : (
+              "Select Courses"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 interface TimeSlot {
@@ -150,7 +534,6 @@ export default function CourseSchedulingPage() {
           throw new Error("Failed to fetch courses");
         }
         const data = await response.json();
-        console.log("API Response:", data);
 
         // Check if data is an array (direct courses array) or has a courses property
         if (Array.isArray(data)) {
@@ -191,19 +574,6 @@ export default function CourseSchedulingPage() {
   const activeCourses = useMemo(() => {
     return courses ? courses.filter((course) => course.status === "OPEN") : [];
   }, [courses]);
-
-  // Debug courses data
-  useEffect(() => {
-    if (courses && courses.length > 0) {
-      console.log(
-        `Found ${courses.length} courses, ${activeCourses.length} active`
-      );
-      // Log a sample course to check its structure
-      console.log("Sample course:", courses[0]);
-    } else {
-      console.log("No courses available or courses array is empty");
-    }
-  }, [courses, activeCourses]);
 
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -403,13 +773,10 @@ export default function CourseSchedulingPage() {
       // Check if the course has sections
       if (course.sections && course.sections.length > 0) {
         // For each existing section
-        course.sections.forEach((section, index) => {
+        course.sections.forEach((_, index) => {
           // For each day
           days.forEach((day) => {
-            // Find a suitable time slot
-            let assigned = false;
-
-            // Try each possible starting time slot
+            // Try each possible starting time slot to find a suitable slot
             for (
               let startIndex = 0;
               startIndex <= startTimes.length - slotsNeeded;
@@ -450,25 +817,17 @@ export default function CourseSchedulingPage() {
                   sectionNumber: index + 1, // Use section index + 1 as section number
                 });
 
-                assigned = true;
                 break; // Found a slot, move to next day
               }
             }
 
-            if (!assigned) {
-              console.warn(
-                `Could not find available time slot for ${course.code} Section ${section.sectionCode} on ${day}`
-              );
-            }
+            // If no slot was assigned, we'll skip this day for this section
           });
         });
       } else {
         // If the course has no sections, create a schedule for the course itself
         days.forEach((day) => {
-          // Find a suitable time slot
-          let assigned = false;
-
-          // Try each possible starting time slot
+          // Try each possible starting time slot to find a suitable slot
           for (
             let startIndex = 0;
             startIndex <= startTimes.length - slotsNeeded;
@@ -509,16 +868,11 @@ export default function CourseSchedulingPage() {
                 sectionNumber: 1, // Default section number
               });
 
-              assigned = true;
               break; // Found a slot, move to next day
             }
           }
 
-          if (!assigned) {
-            console.warn(
-              `Could not find available time slot for ${course.code} on ${day}`
-            );
-          }
+          // If no slot was assigned, we'll skip this day for this course
         });
       }
     });
@@ -551,22 +905,45 @@ export default function CourseSchedulingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Course Scheduling
-          </h1>
-          <p className="text-muted-foreground">
-            Create non-conflicting schedules for multiple courses
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-blue-50 rounded-full">
+            <Calendar className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              Course Scheduling
+            </h1>
+            <p className="text-muted-foreground">
+              Create non-conflicting schedules for multiple courses
+            </p>
+          </div>
         </div>
+
+        {hasFinishedPeriods && finishedPeriods.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-md border border-blue-100">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-blue-700">
+              <InfoIcon className="h-4 w-4" />
+              <span>
+                Scheduling for: {finishedPeriods[0].name}
+                {finishedPeriods[0].semester &&
+                  ` (${finishedPeriods[0].semester})`}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {!hasFinishedPeriods && (
-        <Alert variant="destructive">
+        <Alert
+          variant="destructive"
+          className="border border-red-200 bg-red-50"
+        >
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Course Scheduling Not Available</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="font-semibold">
+            Course Scheduling Not Available
+          </AlertTitle>
+          <AlertDescription className="text-sm">
             Course scheduling can only be used after an enrollment period has
             finished. Please wait for an enrollment period to complete before
             scheduling courses.
@@ -574,30 +951,18 @@ export default function CourseSchedulingPage() {
         </Alert>
       )}
 
-      {hasFinishedPeriods && finishedPeriods.length > 0 && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <InfoIcon className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">
-            Scheduling Available
-          </AlertTitle>
-          <AlertDescription className="text-blue-700">
-            You can now schedule courses for the semester following the
-            completed enrollment period: {finishedPeriods[0].name}
-            {finishedPeriods[0].semester && ` (${finishedPeriods[0].semester})`}
-            .
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>Schedule Settings</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 border-0 shadow-md overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <CalendarDays className="h-5 w-5" />
+              Schedule Settings
+            </CardTitle>
             <CardDescription>
               Select courses and scheduling preferences
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -608,91 +973,47 @@ export default function CourseSchedulingPage() {
                   name="courseIds"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select Courses</FormLabel>
-                      <div className="space-y-3">
+                      <FormLabel className="text-sm font-semibold flex items-center gap-1.5">
+                        <BookOpen className="h-4 w-4" />
+                        Select Courses
+                      </FormLabel>
+                      <div>
                         {activeCourses.length > 0 ? (
                           <>
-                            <div className="flex justify-between mb-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  field.onChange(activeCourses.map((c) => c.id))
-                                }
-                              >
-                                Select All
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => field.onChange([])}
-                              >
-                                Clear All
-                              </Button>
-                            </div>
-                            <div className="max-h-60 overflow-y-auto border rounded-md p-3 space-y-2">
-                              {activeCourses.map((course) => (
-                                <div
-                                  key={course.id}
-                                  className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md border border-gray-100 cursor-pointer"
-                                  onClick={() => {
-                                    if (field.value.includes(course.id)) {
-                                      field.onChange(
-                                        field.value.filter(
-                                          (id) => id !== course.id
-                                        )
-                                      );
-                                    } else {
-                                      field.onChange([
-                                        ...field.value,
-                                        course.id,
-                                      ]);
-                                    }
-                                  }}
-                                >
-                                  <Checkbox
-                                    id={`course-${course.id}`}
-                                    checked={field.value.includes(course.id)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        field.onChange([
-                                          ...field.value,
-                                          course.id,
-                                        ]);
-                                      } else {
-                                        field.onChange(
-                                          field.value.filter(
-                                            (id) => id !== course.id
-                                          )
-                                        );
-                                      }
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="font-medium">
-                                      {course.code}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {course.name}
-                                    </div>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {course.credits} credits
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Selected: {field.value.length} of{" "}
-                              {activeCourses.length} courses
+                            <CourseSelectionDialog
+                              courses={activeCourses}
+                              selectedCourseIds={field.value}
+                              onSelectionChange={field.onChange}
+                            />
+                            <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                              <span>
+                                Selected:{" "}
+                                <span className="font-medium text-blue-600">
+                                  {field.value.length}
+                                </span>{" "}
+                                of {activeCourses.length} courses
+                              </span>
+                              {field.value.length > 0 && (
+                                <span className="text-green-600 flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {field.value.length}{" "}
+                                  {field.value.length === 1
+                                    ? "course"
+                                    : "courses"}{" "}
+                                  selected
+                                </span>
+                              )}
                             </div>
                           </>
                         ) : (
-                          <div className="text-center py-4 text-muted-foreground border rounded-md">
-                            No active courses available
+                          <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-md">
+                            <BookOpen className="h-10 w-10 text-gray-300 mb-2" />
+                            <p className="text-gray-500 font-medium">
+                              No active courses available
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Courses will appear here when they are active
+                            </p>
                           </div>
                         )}
                       </div>
@@ -701,18 +1022,40 @@ export default function CourseSchedulingPage() {
                   )}
                 />
 
+                <Separator className="my-4" />
+
                 <FormField
                   control={form.control}
                   name="days"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select Days</FormLabel>
-                      <div className="grid grid-cols-2 gap-2">
+                      <FormLabel className="text-sm font-semibold flex items-center gap-1.5">
+                        <CalendarDays className="h-4 w-4" />
+                        Select Days
+                      </FormLabel>
+                      <div className="grid grid-cols-3 gap-2">
                         {daysOptions.map((day) => (
                           <div
                             key={day.id}
-                            className="flex items-center space-x-2"
+                            className={cn(
+                              "flex flex-col items-center justify-center p-2 rounded-md border cursor-pointer transition-all",
+                              field.value.includes(day.id)
+                                ? "bg-blue-50 border-blue-200 shadow-sm"
+                                : "bg-white border-gray-200 hover:border-blue-200 hover:bg-blue-50/50"
+                            )}
+                            onClick={() => {
+                              if (field.value.includes(day.id)) {
+                                field.onChange(
+                                  field.value.filter((d) => d !== day.id)
+                                );
+                              } else {
+                                field.onChange([...field.value, day.id]);
+                              }
+                            }}
                           >
+                            <span className="text-xs font-medium mb-1">
+                              {day.label.substring(0, 3)}
+                            </span>
                             <Checkbox
                               id={`day-${day.id}`}
                               checked={field.value.includes(day.id)}
@@ -725,13 +1068,8 @@ export default function CourseSchedulingPage() {
                                   );
                                 }
                               }}
+                              onClick={(e) => e.stopPropagation()}
                             />
-                            <Label
-                              htmlFor={`day-${day.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {day.label}
-                            </Label>
                           </div>
                         ))}
                       </div>
@@ -745,7 +1083,10 @@ export default function CourseSchedulingPage() {
                   name="hoursPerClass"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hours Per Class</FormLabel>
+                      <FormLabel className="text-sm font-semibold flex items-center gap-1.5">
+                        <Clock className="h-4 w-4" />
+                        Hours Per Class
+                      </FormLabel>
                       <Select
                         onValueChange={(value) =>
                           field.onChange(parseFloat(value))
@@ -753,7 +1094,7 @@ export default function CourseSchedulingPage() {
                         defaultValue={field.value.toString()}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white border-gray-200">
                             <SelectValue placeholder="Select hours per class" />
                           </SelectTrigger>
                         </FormControl>
@@ -767,7 +1108,7 @@ export default function CourseSchedulingPage() {
                           <SelectItem value="4">4 hours</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormDescription>
+                      <FormDescription className="text-xs">
                         Duration of each class session
                       </FormDescription>
                       <FormMessage />
@@ -777,16 +1118,19 @@ export default function CourseSchedulingPage() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={generating || !hasFinishedPeriods}
                 >
                   {generating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      Generating Schedule...
                     </>
                   ) : (
-                    <>Generate Schedule</>
+                    <>
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      Generate Schedule
+                    </>
                   )}
                 </Button>
               </form>
@@ -794,77 +1138,157 @@ export default function CourseSchedulingPage() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Generated Schedule</CardTitle>
+        <Card className="lg:col-span-2 border-0 shadow-md overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <Users className="h-5 w-5" />
+                  Generated Schedule
+                </CardTitle>
+              </div>
+              {generatedSchedule.length > 0 && (
+                <Button
+                  onClick={saveSchedule}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50"
+                  disabled={saving || !hasFinishedPeriods}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>Save Schedule</>
+                  )}
+                </Button>
+              )}
+            </div>
             <CardDescription>
               Non-conflicting schedule for selected courses
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {generatedSchedule.length > 0 ? (
-              <>
-                <div className="flex justify-end mb-4">
-                  <Button
-                    onClick={saveSchedule}
-                    variant="outline"
-                    disabled={saving || !hasFinishedPeriods}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>Save Schedule to Database</>
-                    )}
-                  </Button>
-                </div>
+              <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead>Day</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Section</TableHead>
+                      <TableHead className="w-[100px] font-semibold">
+                        Day
+                      </TableHead>
+                      <TableHead className="w-[180px] font-semibold">
+                        Time
+                      </TableHead>
+                      <TableHead className="font-semibold">Course</TableHead>
+                      <TableHead className="w-[80px] text-center font-semibold">
+                        Section
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {generatedSchedule.map((slot, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {slot.day}
-                        </TableCell>
-                        <TableCell>
-                          {slot.startTime} - {slot.endTime}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{slot.courseCode}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {slot.courseName}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                            {String.fromCharCode(64 + slot.sectionNumber)}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {generatedSchedule.map((slot, index) => {
+                      // Generate a consistent color based on the course code
+                      const courseHash = slot.courseCode
+                        .split("")
+                        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                      const colorIndex = (courseHash % 5) + 1; // 5 different colors
+
+                      return (
+                        <TableRow key={index} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">
+                            {slot.day}
+                          </TableCell>
+                          <TableCell className="text-gray-700">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5 text-gray-400" />
+                              <span>
+                                {slot.startTime} - {slot.endTime}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-start gap-2">
+                              <div
+                                className={`w-1 self-stretch rounded-full bg-[hsl(var(--chart-${colorIndex}))]`}
+                              />
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {slot.courseCode}
+                                </div>
+                                <div className="text-sm text-gray-500 line-clamp-1">
+                                  {slot.courseName}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                              {String.fromCharCode(64 + slot.sectionNumber)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
-              </>
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No Schedule Generated</h3>
-                <p className="text-muted-foreground mt-2 max-w-md">
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-gray-50/50">
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                  <Calendar className="h-8 w-8 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  No Schedule Generated
+                </h3>
+                <p className="text-gray-500 mt-2 max-w-md">
                   Select courses, days, and hours per class, then click
                   "Generate Schedule" to create a non-conflicting schedule.
                 </p>
+                <Button
+                  variant="outline"
+                  className="mt-6 border-blue-200 text-blue-600 hover:bg-blue-50"
+                  disabled={!hasFinishedPeriods}
+                  onClick={() => {
+                    // Scroll to the form
+                    document
+                      .querySelector("form")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  Configure Schedule
+                </Button>
               </div>
             )}
           </CardContent>
+          {generatedSchedule.length > 0 && (
+            <CardFooter className="bg-gray-50 border-t px-6 py-4">
+              <div className="flex items-center justify-between w-full">
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium">
+                    {generatedSchedule.length}
+                  </span>{" "}
+                  time slots generated
+                </div>
+                <Button
+                  onClick={saveSchedule}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={saving || !hasFinishedPeriods}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>Save Schedule to Database</>
+                  )}
+                </Button>
+              </div>
+            </CardFooter>
+          )}
         </Card>
       </div>
     </div>

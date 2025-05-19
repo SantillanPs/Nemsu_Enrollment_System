@@ -15,6 +15,7 @@ interface Section {
   sectionCode: string;
   schedule: string;
   room: string;
+  maxStudents: number;
   enrollments: any[];
 }
 
@@ -46,7 +47,9 @@ export function DeleteSectionDialog({
         {selectedSection && (
           <div className="py-4">
             <div>
-              <p className="font-medium">Section {selectedSection.sectionCode}</p>
+              <p className="font-medium">
+                Section {selectedSection.sectionCode}
+              </p>
               <p className="text-sm text-muted-foreground">
                 Instructor: {getInstructorName(selectedSection)}
               </p>
@@ -61,8 +64,8 @@ export function DeleteSectionDialog({
               <div className="mt-4 bg-red-50 p-3 rounded-md">
                 <p className="text-sm text-red-800">
                   <strong>Warning:</strong> This section has{" "}
-                  {selectedSection.enrollments.length} enrolled students. Deleting
-                  it will remove all student enrollments.
+                  {selectedSection.enrollments.length} enrolled students.
+                  Deleting it will remove all student enrollments.
                 </p>
               </div>
             )}
