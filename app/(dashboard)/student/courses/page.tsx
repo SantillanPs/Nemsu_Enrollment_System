@@ -19,12 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  Info as InfoIcon,
-} from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
@@ -33,7 +28,7 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
@@ -720,20 +715,7 @@ export default function AvailableCourses() {
 
   return (
     <div className="container mx-auto p-6">
-      {/* Super Admin Notice */}
-      {isSuperAdmin && (
-        <Alert className="bg-amber-50 border-amber-200 mb-6">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800">Super Admin View</AlertTitle>
-          <AlertDescription className="text-amber-700">
-            You are viewing this page as a Super Admin. You can see all courses,
-            including those with status "CLOSED" which are hidden from regular
-            students. Courses with status "CLOSED" are marked with a red badge.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Verification Status Alert */}
+      {/* Verification Status Alert - This is critical so we keep it prominent */}
       {!verificationStatus.isVerified && (
         <Alert className="bg-red-50 border-red-200 mb-6">
           <AlertCircle className="h-4 w-4 text-red-600" />
@@ -781,230 +763,182 @@ export default function AvailableCourses() {
         </Alert>
       )}
 
-      {/* Enrollment Period Alerts */}
-      {!enrollmentStatus.isEnrollmentOpen && (
-        <Alert
-          className={
-            enrollmentStatus.nextPeriod
-              ? "bg-amber-50 border-amber-200 mb-6"
-              : "bg-red-50 border-red-200 mb-6"
-          }
-        >
-          <AlertCircle
-            className={
-              enrollmentStatus.nextPeriod
-                ? "h-4 w-4 text-amber-600"
-                : "h-4 w-4 text-red-600"
-            }
-          />
-          <AlertTitle
-            className={
-              enrollmentStatus.nextPeriod ? "text-amber-800" : "text-red-800"
-            }
+      {/* Status Indicators - More subtle and integrated */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {/* Credit Units Indicator */}
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border rounded-full text-xs font-medium shadow-sm">
+          <svg
+            className="w-3.5 h-3.5 text-slate-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            {enrollmentStatus.nextPeriod
-              ? "Enrollment Period Coming Soon"
-              : "Enrollment is Currently Closed"}
-          </AlertTitle>
-          <AlertDescription
-            className={
-              enrollmentStatus.nextPeriod ? "text-amber-700" : "text-red-700"
-            }
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+            />
+          </svg>
+          <span
+            className={`${
+              unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.8
+                ? "text-red-600 dark:text-red-400"
+                : unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.5
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-slate-700 dark:text-slate-300"
+            }`}
           >
-            {enrollmentStatus.nextPeriod ? (
-              <>
-                The next enrollment period ({enrollmentStatus.nextPeriod.name})
-                will start on{" "}
-                {new Date(
-                  enrollmentStatus.nextPeriod.startDate
-                ).toLocaleDateString()}{" "}
-                at{" "}
-                {new Date(
-                  enrollmentStatus.nextPeriod.startDate
-                ).toLocaleTimeString()}
-                .
-              </>
-            ) : (
-              "There are no active enrollment periods at this time. Please check back later or contact the registrar's office for more information."
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Current Semester Information */}
-      {currentSemester.semester !== "NONE" && (
-        <Alert className="mb-6 bg-blue-50 border-blue-200">
-          <InfoIcon className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">Filtered Courses</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            You are viewing courses for{" "}
-            {currentSemester.semester === "First Semester"
-              ? "First Semester"
-              : currentSemester.semester === "Second Semester"
-              ? "Second Semester"
-              : "Summer"}{" "}
-            that match your current year.
-            <span className="font-medium">
-              {" "}
-              Courses from previous years that you haven't taken yet are also
-              shown.
+            {unitsInfo.currentEnrolledUnits}/{unitsInfo.maxUnits} units
+          </span>
+          {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+              MAX
             </span>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Units Information Card */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Credit Units</CardTitle>
-        </CardHeader>
-        <div className="px-6 pb-6">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-sm font-medium">Current Enrolled Units</div>
-            <div className="text-sm font-medium">
-              {unitsInfo.currentEnrolledUnits} / {unitsInfo.maxUnits} units
-              {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
-                <Badge className="ml-2 bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300">
-                  MAXED OUT
-                </Badge>
-              )}
-            </div>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className={`h-2.5 rounded-full ${
-                unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.8
-                  ? "bg-red-500"
-                  : unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits > 0.5
-                  ? "bg-yellow-500"
-                  : "bg-green-500"
-              }`}
-              style={{
-                width: `${Math.min(
-                  100,
-                  (unitsInfo.currentEnrolledUnits / unitsInfo.maxUnits) * 100
-                )}%`,
-              }}
-            ></div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            You can enroll in courses up to your maximum allowed units (
-            {unitsInfo.maxUnits}).
-            {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
-              <span className="text-red-600 font-medium ml-1">
-                You have reached your maximum allowed units and cannot enroll in
-                more courses.
-              </span>
-            )}
-          </p>
+          )}
         </div>
-      </Card>
 
-      {/* Units Maxed Out Alert */}
-      {unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits && (
-        <Alert className="bg-red-50 border-red-200 mb-6">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-800">
-            Maximum Units Reached
-          </AlertTitle>
-          <AlertDescription className="text-red-700">
-            You have reached your maximum allowed units ({unitsInfo.maxUnits}).
-            You cannot enroll in more courses until you complete some of your
-            current courses or contact an administrator to increase your unit
-            limit.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {enrollmentStatus.isEnrollmentOpen &&
-        enrollmentStatus.currentPeriod &&
-        verificationStatus.isVerified && (
-          <Alert className="bg-green-50 border-green-200 mb-6">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-800">
-              Enrollment is Open
-            </AlertTitle>
-            <AlertDescription className="text-green-700">
-              The current enrollment period (
-              {enrollmentStatus.currentPeriod.name}) is active until{" "}
+        {/* Enrollment Status Indicator */}
+        {enrollmentStatus.isEnrollmentOpen && enrollmentStatus.currentPeriod ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-green-100 dark:border-green-900/50 rounded-full text-xs font-medium text-green-700 dark:text-green-400 shadow-sm">
+            <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            <span>Enrollment Open</span>
+            <span className="text-slate-400 dark:text-slate-500">·</span>
+            <span className="text-slate-500 dark:text-slate-400">
+              Until{" "}
               {new Date(
                 enrollmentStatus.currentPeriod.endDate
-              ).toLocaleDateString()}{" "}
-              at{" "}
+              ).toLocaleDateString()}
+            </span>
+          </div>
+        ) : enrollmentStatus.nextPeriod ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-amber-100 dark:border-amber-900/50 rounded-full text-xs font-medium text-amber-700 dark:text-amber-400 shadow-sm">
+            <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <span>Coming Soon</span>
+            <span className="text-slate-400 dark:text-slate-500">·</span>
+            <span className="text-slate-500 dark:text-slate-400">
+              Starts{" "}
               {new Date(
-                enrollmentStatus.currentPeriod.endDate
-              ).toLocaleTimeString()}
-              .
-            </AlertDescription>
-          </Alert>
+                enrollmentStatus.nextPeriod.startDate
+              ).toLocaleDateString()}
+            </span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/50 rounded-full text-xs font-medium text-red-700 dark:text-red-400 shadow-sm">
+            <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            <span>Enrollment Closed</span>
+          </div>
         )}
 
-      <div className="bg-white dark:bg-slate-900 border rounded-lg shadow-sm p-6 mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+        {/* Super Admin or Units Maxed Out Indicator */}
+        {isSuperAdmin ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-amber-100 dark:border-amber-900/50 rounded-full text-xs font-medium text-amber-700 dark:text-amber-400 shadow-sm">
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span>Super Admin View</span>
+          </div>
+        ) : unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/50 rounded-full text-xs font-medium text-red-700 dark:text-red-400 shadow-sm">
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Units Maxed Out</span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border rounded-lg shadow-sm mb-8 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
             Available Courses
           </h1>
 
-          <Button
-            onClick={handleEnrollAll}
-            disabled={
-              !enrollmentStatus.isEnrollmentOpen ||
-              !verificationStatus.isVerified ||
-              enrollingCourses.length > 0 ||
-              courses.length === 0 ||
-              unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits
-            }
-            className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white"
-            size="lg"
-          >
-            {enrollingCourses.length > 0 ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Enrolling in All Courses...
-              </>
-            ) : unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits ? (
-              <>
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Units Maxed Out - Cannot Enroll
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Enroll in All Available Courses
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-blue-100 dark:bg-blue-900/20 rounded-md blur opacity-0 group-hover:opacity-70 transition-opacity duration-300"></div>
+              <Button
+                onClick={handleEnrollAll}
+                disabled={
+                  !enrollmentStatus.isEnrollmentOpen ||
+                  !verificationStatus.isVerified ||
+                  enrollingCourses.length > 0 ||
+                  courses.length === 0 ||
+                  unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits
+                }
+                className="relative whitespace-nowrap bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700"
+                size="sm"
+              >
+                {enrollingCourses.length > 0 ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <span className="text-xs">Enrolling...</span>
+                  </>
+                ) : unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits ? (
+                  <>
+                    <svg
+                      className="w-3.5 h-3.5 mr-1.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs">Units Maxed</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-3.5 h-3.5 mr-1.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs">Enroll All</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-          <div className="flex flex-1 gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[240px]">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-md group">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                className="w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-200"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1012,26 +946,48 @@ export default function AvailableCourses() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <Input
-                type="text"
-                placeholder="Search courses by name, code, or instructor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white dark:bg-slate-900"
-              />
             </div>
+            <Input
+              type="text"
+              placeholder="Search by name, code, or instructor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-9 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-500"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
 
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[180px] bg-white dark:bg-slate-900">
-                <SelectValue placeholder="Select year" />
+              <SelectTrigger className="w-[120px] h-9 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent>
                 {years.map((year) => (
-                  <SelectItem key={year} value={year}>
+                  <SelectItem key={year} value={year} className="text-sm">
                     {year === "all" ? "All Years" : `Year ${year}`}
                   </SelectItem>
                 ))}
@@ -1042,17 +998,57 @@ export default function AvailableCourses() {
               value={selectedSemester}
               onValueChange={setSelectedSemester}
             >
-              <SelectTrigger className="w-[180px] bg-white dark:bg-slate-900">
-                <SelectValue placeholder="Select semester" />
+              <SelectTrigger className="w-[140px] h-9 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                <SelectValue placeholder="Semester" />
               </SelectTrigger>
               <SelectContent>
                 {semesters.map((semester) => (
-                  <SelectItem key={semester} value={semester}>
-                    {semester === "all" ? "All Semesters" : semester}
+                  <SelectItem
+                    key={semester}
+                    value={semester}
+                    className="text-sm"
+                  >
+                    {semester === "all"
+                      ? "All Semesters"
+                      : semester === "FIRST"
+                      ? "First Semester"
+                      : semester === "SECOND"
+                      ? "Second Semester"
+                      : "Summer"}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
+            {(searchTerm ||
+              selectedYear !== "all" ||
+              selectedSemester !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedYear("all");
+                  setSelectedSemester("all");
+                }}
+                className="h-9 px-2 text-xs text-slate-500 hover:text-slate-700"
+              >
+                <svg
+                  className="w-3.5 h-3.5 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Clear filters
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1114,55 +1110,75 @@ export default function AvailableCourses() {
                 id={`course-group-${groupKey}`}
                 className="border rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm"
               >
-                <div className="bg-slate-50 dark:bg-slate-800/50 border-b px-6 py-4">
-                  <div className="flex flex-wrap justify-between items-center gap-4">
-                    <div>
-                      <h2 className="text-xl font-semibold flex items-center gap-2">
-                        <span className="text-slate-900 dark:text-slate-100">
-                          {group.title}
-                        </span>
-                        <Badge variant="outline" className="ml-2">
-                          {group.courses.length}{" "}
-                          {group.courses.length === 1 ? "course" : "courses"}
-                        </Badge>
-                      </h2>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {group.semester === "First Semester" ||
-                        group.semester === "FIRST"
-                          ? "First Semester"
-                          : group.semester === "Second Semester" ||
-                            group.semester === "SECOND"
-                          ? "Second Semester"
-                          : group.semester === "Summer" ||
-                            group.semester === "SUMMER"
-                          ? "Summer Term"
-                          : group.semester}
-                      </p>
+                <div className="bg-slate-50 dark:bg-slate-800/30 border-b px-4 py-3">
+                  <div className="flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-medium text-slate-800 dark:text-slate-200">
+                            {group.title}
+                          </h2>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            {group.courses.length}{" "}
+                            {group.courses.length === 1 ? "course" : "courses"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {group.semester === "First Semester" ||
+                          group.semester === "FIRST"
+                            ? "First Semester"
+                            : group.semester === "Second Semester" ||
+                              group.semester === "SECOND"
+                            ? "Second Semester"
+                            : group.semester === "Summer" ||
+                              group.semester === "SUMMER"
+                            ? "Summer Term"
+                            : group.semester}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center bg-white dark:bg-slate-800 border rounded-md px-3 py-1.5">
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1">
                         <Checkbox
                           id={`select-all-${groupKey}`}
                           checked={allSelected}
                           onCheckedChange={() =>
                             toggleSelectAll(groupKey, allCoursesInGroup)
                           }
-                          className="mr-2"
+                          className="h-3.5 w-3.5"
                         />
                         <label
                           htmlFor={`select-all-${groupKey}`}
-                          className="text-sm cursor-pointer font-medium"
+                          className="text-xs cursor-pointer"
                         >
-                          Select All Courses
+                          Select All
                         </label>
                       </div>
-                      <Button
-                        size="sm"
+
+                      <button
+                        type="button"
                         className={cn(
-                          "h-9",
-                          selectedInGroup.length === 0 && "opacity-70"
+                          "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors border",
+                          !enrollmentStatus.isEnrollmentOpen ||
+                            !verificationStatus.isVerified ||
+                            selectedInGroup.length === 0 ||
+                            enrollingCourses.length > 0 ||
+                            unitsInfo.currentEnrolledUnits >= unitsInfo.maxUnits
+                            ? "bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                            : "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer"
                         )}
-                        onClick={() => handleBulkEnrollment(groupKey)}
+                        onClick={() => {
+                          if (
+                            enrollmentStatus.isEnrollmentOpen &&
+                            verificationStatus.isVerified &&
+                            selectedInGroup.length > 0 &&
+                            enrollingCourses.length === 0 &&
+                            unitsInfo.currentEnrolledUnits < unitsInfo.maxUnits
+                          ) {
+                            handleBulkEnrollment(groupKey);
+                          }
+                        }}
                         disabled={
                           !enrollmentStatus.isEnrollmentOpen ||
                           !verificationStatus.isVerified ||
@@ -1176,14 +1192,14 @@ export default function AvailableCourses() {
                           enrollingCourses.includes(id)
                         ) ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enrolling...
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Enrolling...</span>
                           </>
                         ) : unitsInfo.currentEnrolledUnits >=
                           unitsInfo.maxUnits ? (
                           <>
                             <svg
-                              className="w-4 h-4 mr-1.5"
+                              className="w-3.5 h-3.5"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -1191,16 +1207,33 @@ export default function AvailableCourses() {
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
+                                strokeWidth={1.5}
                                 d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                               />
                             </svg>
-                            Units Maxed Out
+                            <span>Units Maxed</span>
+                          </>
+                        ) : selectedInGroup.length === 0 ? (
+                          <>
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>Select Courses</span>
                           </>
                         ) : (
                           <>
                             <svg
-                              className="w-4 h-4 mr-1.5"
+                              className="w-3.5 h-3.5"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -1208,19 +1241,19 @@ export default function AvailableCourses() {
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
+                                strokeWidth={1.5}
                                 d="M5 13l4 4L19 7"
                               />
                             </svg>
-                            Enroll Selected ({selectedInGroup.length})
+                            <span>Enroll ({selectedInGroup.length})</span>
                           </>
                         )}
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {group.courses.map((course) => {
                       const isSelected = selectedInGroup.includes(course.id);
                       const isEnrolling = enrollingCourses.includes(course.id);
@@ -1230,15 +1263,16 @@ export default function AvailableCourses() {
                           key={course.id}
                           id={`course-card-${course.id}`}
                           className={cn(
-                            "flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md group",
-                            isSelected && "ring-2 ring-primary ring-offset-2",
-                            enrolledCourseMap[course.id] && "opacity-75"
+                            "flex flex-col overflow-hidden transition-all duration-200 hover:shadow-sm group border-slate-200 dark:border-slate-700",
+                            isSelected &&
+                              "ring-1 ring-blue-500 border-blue-200 dark:border-blue-800",
+                            enrolledCourseMap[course.id] && "opacity-80"
                           )}
                         >
-                          {/* Card top accent color based on status */}
+                          {/* Card top accent color based on status - more subtle */}
                           <div
                             className={cn(
-                              "h-1.5 w-full",
+                              "h-0.5 w-full",
                               course.status === "OPEN"
                                 ? "bg-green-500"
                                 : course.status === "CLOSED"
@@ -1247,9 +1281,9 @@ export default function AvailableCourses() {
                             )}
                           />
 
-                          <CardHeader className="pb-3 relative">
-                            {/* Checkbox positioned at top-right for better visibility */}
-                            <div className="absolute top-4 right-4">
+                          <CardHeader className="p-3 relative">
+                            {/* Checkbox positioned at top-right - more subtle */}
+                            <div className="absolute top-3 right-3">
                               <Checkbox
                                 id={`course-${course.id}`}
                                 checked={isSelected}
@@ -1257,64 +1291,63 @@ export default function AvailableCourses() {
                                   toggleCourseSelection(groupKey, course.id)
                                 }
                                 disabled={!!enrolledCourseMap[course.id]}
-                                className="h-5 w-5 transition-transform group-hover:scale-110"
+                                className="h-4 w-4 transition-transform group-hover:scale-110"
                               />
                             </div>
 
-                            <div className="flex-1 pr-8">
-                              {/* Course code and status badges */}
-                              <div className="flex flex-wrap gap-2 mb-3">
-                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300 font-medium">
+                            <div className="flex-1 pr-6">
+                              {/* Course code and status badges - more compact */}
+                              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50">
                                   {course.code}
-                                </Badge>
+                                </span>
 
-                                {/* Course status badge */}
+                                {/* Course status indicator - more subtle */}
                                 {course.status === "OPEN" ? (
-                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800/50">
+                                    <span className="h-1 w-1 rounded-full bg-green-500"></span>
                                     OPEN
-                                  </Badge>
+                                  </span>
                                 ) : course.status === "CLOSED" ? (
-                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300 flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                    CLOSED{" "}
-                                    {isSuperAdmin && "(Hidden from students)"}
-                                  </Badge>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800/50">
+                                    <span className="h-1 w-1 rounded-full bg-red-500"></span>
+                                    CLOSED
+                                  </span>
                                 ) : (
-                                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-gray-500"></span>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 border border-gray-100 dark:border-gray-800/50">
+                                    <span className="h-1 w-1 rounded-full bg-gray-500"></span>
                                     {course.status}
-                                  </Badge>
+                                  </span>
                                 )}
 
-                                {/* Credits badge */}
-                                <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 ml-auto">
+                                {/* Credits indicator - more subtle */}
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400 border border-slate-100 dark:border-slate-800/50 ml-auto">
                                   {course.credits}{" "}
                                   {course.credits === 1 ? "credit" : "credits"}
-                                </Badge>
+                                </span>
                               </div>
 
-                              {/* Course title */}
+                              {/* Course title - cleaner typography */}
                               <CardTitle>
                                 <label
                                   htmlFor={`course-${course.id}`}
-                                  className="text-lg cursor-pointer hover:text-primary transition-colors"
+                                  className="text-base font-medium cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
                                 >
                                   {course.name}
                                 </label>
                               </CardTitle>
 
-                              {/* Course description */}
-                              <CardDescription className="mt-2">
-                                <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+                              {/* Course description - more compact */}
+                              <CardDescription className="mt-1">
+                                <p className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
                                   {course.description}
                                 </p>
                               </CardDescription>
 
-                              {/* Instructor info with improved icon */}
-                              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                              {/* Instructor info - more subtle */}
+                              <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                                 <svg
-                                  className="w-4 h-4 mr-1.5 flex-shrink-0 text-slate-400"
+                                  className="w-3.5 h-3.5 mr-1 flex-shrink-0 text-slate-400"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                   stroke="currentColor"
@@ -1322,7 +1355,7 @@ export default function AvailableCourses() {
                                   <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth={2}
+                                    strokeWidth={1.5}
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                                   />
                                 </svg>
@@ -1340,11 +1373,11 @@ export default function AvailableCourses() {
                           </CardHeader>
 
                           {course.prerequisites.length > 0 && (
-                            <div className="px-6 py-3 border-t bg-slate-50/50 dark:bg-slate-900/20">
-                              <div className="flex flex-wrap items-center gap-2 mb-3">
-                                <div className="flex items-center">
+                            <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1">
                                   <svg
-                                    className="w-4 h-4 mr-1.5 text-slate-500"
+                                    className="w-3.5 h-3.5 text-slate-500"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -1352,90 +1385,52 @@ export default function AvailableCourses() {
                                     <path
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
-                                      strokeWidth={2}
+                                      strokeWidth={1.5}
                                       d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                                     />
                                   </svg>
-                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                                     Prerequisites
                                   </span>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs font-normal bg-white dark:bg-slate-800 ml-2"
-                                  >
-                                    {course.prerequisites.length}{" "}
-                                    {course.prerequisites.length === 1
-                                      ? "course"
-                                      : "courses"}
-                                  </Badge>
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                    {course.prerequisites.length}
+                                  </span>
                                 </div>
 
-                                {/* Show completion status */}
-                                <div className="ml-auto">
-                                  {course.prerequisites.every((p) =>
-                                    completedCourseIds.includes(p.id)
-                                  ) ? (
-                                    <div className="flex items-center text-green-600 dark:text-green-500 text-xs font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                                      <svg
-                                        className="w-3.5 h-3.5 mr-1"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                      </svg>
-                                      All prerequisites met
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center text-amber-600 dark:text-amber-500 text-xs font-medium bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-full">
-                                      <svg
-                                        className="w-3.5 h-3.5 mr-1"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                        />
-                                      </svg>
-                                      Prerequisites needed
-                                    </div>
-                                  )}
-                                </div>
+                                {/* Show completion status - more subtle */}
+                                {course.prerequisites.every((p) =>
+                                  completedCourseIds.includes(p.id)
+                                ) ? (
+                                  <div className="inline-flex items-center gap-1 text-green-600 dark:text-green-500 text-[10px] font-medium">
+                                    <span className="h-1 w-1 rounded-full bg-green-500"></span>
+                                    <span>All met</span>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-500 text-[10px] font-medium">
+                                    <span className="h-1 w-1 rounded-full bg-amber-500"></span>
+                                    <span>Required</span>
+                                  </div>
+                                )}
                               </div>
 
-                              <div className="flex flex-wrap gap-2 mt-3">
+                              <div className="flex flex-wrap gap-1 mt-1.5">
                                 {course.prerequisites.map((prerequisite) => {
                                   const isCompleted =
                                     completedCourseIds.includes(
                                       prerequisite.id
                                     );
 
-                                  // Find the prerequisite course details
-                                  const prereqCourse = courses.find(
-                                    (c) => c.id === prerequisite.id
-                                  );
-
                                   return (
                                     <TooltipProvider key={prerequisite.id}>
-                                      <Tooltip>
+                                      <Tooltip delayDuration={300}>
                                         <TooltipTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
+                                          <button
+                                            type="button"
                                             className={cn(
-                                              "flex items-center px-3 py-1.5 h-auto text-xs transition-all",
+                                              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors",
                                               isCompleted
-                                                ? "border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
-                                                : "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                                ? "bg-green-50 text-green-700 border-green-100 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30 dark:hover:bg-green-900/30"
+                                                : "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30 dark:hover:bg-amber-900/30"
                                             )}
                                             onClick={() => {
                                               // Find the group that contains this prerequisite course
@@ -1469,15 +1464,13 @@ export default function AvailableCourses() {
                                                     );
                                                   if (courseCard) {
                                                     courseCard.classList.add(
-                                                      "ring-2",
-                                                      "ring-primary",
-                                                      "ring-offset-2"
+                                                      "ring-1",
+                                                      "ring-blue-500"
                                                     );
                                                     setTimeout(() => {
                                                       courseCard.classList.remove(
-                                                        "ring-2",
-                                                        "ring-primary",
-                                                        "ring-offset-2"
+                                                        "ring-1",
+                                                        "ring-blue-500"
                                                       );
                                                     }, 2000);
                                                   }
@@ -1486,64 +1479,27 @@ export default function AvailableCourses() {
                                             }}
                                           >
                                             {isCompleted ? (
-                                              <svg
-                                                className="w-3.5 h-3.5 mr-1.5 text-green-500 flex-shrink-0"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                              </svg>
+                                              <span className="h-1 w-1 rounded-full bg-green-500"></span>
                                             ) : (
-                                              <svg
-                                                className="w-3.5 h-3.5 mr-1.5 text-amber-500 flex-shrink-0"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                                />
-                                              </svg>
+                                              <span className="h-1 w-1 rounded-full bg-amber-500"></span>
                                             )}
-                                            <span className="font-medium truncate">
+                                            <span className="truncate max-w-[80px]">
                                               {prerequisite.code}
                                             </span>
-                                            <svg
-                                              className="w-3.5 h-3.5 ml-1 text-slate-400 flex-shrink-0"
-                                              fill="none"
-                                              viewBox="0 0 24 24"
-                                              stroke="currentColor"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                              />
-                                            </svg>
-                                          </Button>
+                                          </button>
                                         </TooltipTrigger>
                                         <TooltipContent
                                           side="top"
-                                          className="max-w-xs"
+                                          className="p-2 max-w-[200px]"
                                         >
                                           <div className="space-y-1">
-                                            <p className="font-medium">
+                                            <p className="text-xs font-medium">
                                               {prerequisite.name}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-[10px] text-slate-500">
                                               {isCompleted
-                                                ? "You have completed this prerequisite course"
-                                                : "Click to navigate to this prerequisite course"}
+                                                ? "✓ You have completed this prerequisite"
+                                                : "⚠ Required before enrollment"}
                                             </p>
                                           </div>
                                         </TooltipContent>
@@ -1555,14 +1511,11 @@ export default function AvailableCourses() {
                             </div>
                           )}
 
-                          <CardFooter className="mt-auto pt-3 pb-4 px-6 flex flex-col gap-3">
+                          <CardFooter className="mt-auto p-3 border-t border-slate-100 dark:border-slate-800">
                             {enrolledCourseMap[course.id] ? (
-                              <Button
-                                className="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 h-10 rounded-md"
-                                disabled={true}
-                              >
+                              <div className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30 border border-green-200 dark:border-green-800/30 text-green-700 dark:text-green-400 text-xs font-medium shadow-sm">
                                 <svg
-                                  className="w-4 h-4 mr-2 flex-shrink-0"
+                                  className="w-3.5 h-3.5 flex-shrink-0"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                   stroke="currentColor"
@@ -1570,31 +1523,30 @@ export default function AvailableCourses() {
                                   <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth={2}
+                                    strokeWidth={1.5}
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                   />
                                 </svg>
                                 <span className="truncate">
-                                  {`Already Enrolled (${
-                                    enrolledCourseMap[course.id]
-                                  })`}
+                                  Enrolled ({enrolledCourseMap[course.id]})
                                 </span>
-                              </Button>
+                              </div>
                             ) : (
-                              <Button
+                              <button
+                                type="button"
                                 className={cn(
-                                  "w-full font-medium h-10 rounded-md transition-all",
+                                  "w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border shadow-sm",
                                   !enrollmentStatus.isEnrollmentOpen ||
                                     !verificationStatus.isVerified ||
                                     unitsInfo.currentEnrolledUnits >=
                                       unitsInfo.maxUnits
-                                    ? "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                                    ? "bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/80 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                                     : course.prerequisites.length > 0 &&
                                       !course.prerequisites.every((p) =>
                                         completedCourseIds.includes(p.id)
                                       )
-                                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50"
-                                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                                    ? "bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/30 hover:from-amber-100 hover:to-amber-200 dark:hover:from-amber-900/30 dark:hover:to-amber-900/40 hover:shadow-md"
+                                    : "bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/30 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-900/30 dark:hover:to-blue-900/40 hover:shadow-md"
                                 )}
                                 onClick={() => handleEnrollment(course.id)}
                                 disabled={
@@ -1611,13 +1563,13 @@ export default function AvailableCourses() {
                               >
                                 {isEnrolling ? (
                                   <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
                                     <span>Enrolling...</span>
                                   </>
                                 ) : !verificationStatus.isVerified ? (
                                   <>
                                     <svg
-                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      className="w-3.5 h-3.5 flex-shrink-0"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                       stroke="currentColor"
@@ -1625,17 +1577,17 @@ export default function AvailableCourses() {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                                       />
                                     </svg>
-                                    <span>Account Not Verified</span>
+                                    <span>Not Verified</span>
                                   </>
                                 ) : unitsInfo.currentEnrolledUnits >=
                                   unitsInfo.maxUnits ? (
                                   <>
                                     <svg
-                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      className="w-3.5 h-3.5 flex-shrink-0"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                       stroke="currentColor"
@@ -1643,11 +1595,11 @@ export default function AvailableCourses() {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                       />
                                     </svg>
-                                    <span>Units Maxed Out</span>
+                                    <span>Units Maxed</span>
                                   </>
                                 ) : course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
@@ -1655,7 +1607,7 @@ export default function AvailableCourses() {
                                   ) ? (
                                   <>
                                     <svg
-                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      className="w-3.5 h-3.5 flex-shrink-0"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                       stroke="currentColor"
@@ -1663,16 +1615,16 @@ export default function AvailableCourses() {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                                       />
                                     </svg>
-                                    <span>Prerequisites Required</span>
+                                    <span>Prerequisites Needed</span>
                                   </>
                                 ) : (
                                   <>
                                     <svg
-                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      className="w-3.5 h-3.5 flex-shrink-0"
                                       fill="none"
                                       viewBox="0 0 24 24"
                                       stroke="currentColor"
@@ -1680,14 +1632,14 @@ export default function AvailableCourses() {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                                       />
                                     </svg>
                                     <span>Enroll in Course</span>
                                   </>
                                 )}
-                              </Button>
+                              </button>
                             )}
                           </CardFooter>
                         </Card>
