@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,10 +35,22 @@ import {
   Clock,
   GraduationCap,
   ChevronRight,
+  Download,
+  Loader2,
+  FileText,
+  MapPin,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import Loading from "./loading";
+import CertificateOfRegistration from "@/app/components/CertificateOfRegistration";
+import { generatePDF } from "@/app/lib/utils/pdf-generator";
 
 interface Course {
   id: string;
@@ -57,11 +69,31 @@ interface Course {
   };
 }
 
+interface StudentProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  phone?: string;
+  address?: string;
+  studentId?: string;
+  schoolYear?: number;
+  isVerified: boolean;
+}
+
+interface Section {
+  id: string;
+  sectionCode: string;
+  schedule: string;
+  room: string;
+}
+
 interface Enrollment {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN" | "COMPLETED";
   grade: string | null;
   course: Course;
+  section: Section | null;
   createdAt: string;
 }
 
@@ -71,11 +103,18 @@ export default function MyCourses() {
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchEnrollments();
+    fetchStudentProfile();
   }, []);
 
   const fetchEnrollments = async () => {
@@ -106,6 +145,79 @@ export default function MyCourses() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStudentProfile = async () => {
+    try {
+      const response = await fetch("/api/student/profile");
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setStudentProfile(data);
+    } catch (error) {
+      console.error("Error fetching student profile:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch student profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportCertificate = async () => {
+    if (!studentProfile || enrollments.length === 0) {
+      toast({
+        title: "Error",
+        description:
+          "Cannot generate certificate. Missing student data or no enrolled courses.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setExportingPdf(true);
+      setShowCertificate(true);
+
+      // Wait for the certificate to render
+      setTimeout(async () => {
+        if (certificateRef.current) {
+          await generatePDF(
+            certificateRef.current,
+            `Certificate_of_Registration_${studentProfile.firstName}_${studentProfile.lastName}.pdf`
+          );
+
+          toast({
+            title: "Success",
+            description: "Certificate of Registration has been downloaded.",
+          });
+        } else {
+          throw new Error("Certificate container not found");
+        }
+        setShowCertificate(false);
+        setExportingPdf(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error generating certificate:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate certificate. Please try again.",
+        variant: "destructive",
+      });
+      setShowCertificate(false);
+      setExportingPdf(false);
     }
   };
 
@@ -259,6 +371,28 @@ export default function MyCourses() {
         </div>
       </div>
 
+      {/* Hidden Certificate Component for PDF Generation */}
+      {showCertificate && studentProfile && (
+        <div className="fixed left-0 top-0 -z-10 opacity-0">
+          <div ref={certificateRef}>
+            <CertificateOfRegistration
+              studentProfile={studentProfile}
+              enrollments={enrollments.filter(
+                (e) => e.status === "APPROVED" || e.status === "COMPLETED"
+              )}
+              currentSemester={
+                selectedSemester !== "all" ? selectedSemester : "First Semester"
+              }
+              currentYear={
+                selectedYear !== "all"
+                  ? selectedYear
+                  : new Date().getFullYear().toString()
+              }
+            />
+          </div>
+        </div>
+      )}
+
       <div className="space-y-8">
         {sortedGroups.map((group) => (
           <div key={group.semester} className="space-y-4">
@@ -289,58 +423,83 @@ export default function MyCourses() {
                   </CardHeader>
 
                   <CardContent className="flex-grow pb-0">
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        <span>{enrollment.course.credits} credits</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Users className="h-3.5 w-3.5" />
-                        <span>Instructor</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{group.semester.split(" - ")[0]}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{group.semester.split(" - ")[1]}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1 text-sm">
-                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Instructor:</span>
+                    <div className="space-y-4">
+                      {/* Course Basic Info */}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <BookOpen className="h-3.5 w-3.5 text-blue-500" />
+                          <span>{enrollment.course.credits} credits</span>
                         </div>
-                        <span className="text-sm">
-                          {enrollment.course.faculty?.profile
-                            ? `${enrollment.course.faculty.profile.firstName} ${enrollment.course.faculty.profile.lastName}`
-                            : "No instructor assigned"}
-                        </span>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5 text-amber-500" />
+                          <span>{group.semester}</span>
+                        </div>
                       </div>
 
-                      {enrollment.grade && (
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-1 text-sm">
-                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">Grade:</span>
-                          </div>
-                          <span className="text-sm font-medium">
-                            {enrollment.grade}
+                      {/* Instructor & Section Info */}
+                      <div className="border-t border-b py-3 space-y-2">
+                        <div className="flex items-center gap-1 text-sm">
+                          <GraduationCap className="h-4 w-4 text-indigo-500" />
+                          <span className="font-medium">Instructor:</span>
+                          <span className="text-muted-foreground ml-1">
+                            {enrollment.course.faculty?.profile
+                              ? `${enrollment.course.faculty.profile.firstName} ${enrollment.course.faculty.profile.lastName}`
+                              : "No instructor assigned"}
                           </span>
                         </div>
-                      )}
 
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Enrolled On:</span>
+                        {enrollment.section && (
+                          <>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Users className="h-4 w-4 text-blue-500" />
+                              <span className="font-medium">Section:</span>
+                              <span className="text-muted-foreground ml-1">
+                                {enrollment.section.sectionCode}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <MapPin className="h-4 w-4 text-red-500" />
+                              <span className="font-medium">Room:</span>
+                              <span className="text-muted-foreground ml-1">
+                                {enrollment.section.room}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Clock className="h-4 w-4 text-green-500" />
+                              <span className="font-medium">Schedule:</span>
+                              <span className="text-muted-foreground ml-1">
+                                {enrollment.section.schedule}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Enrollment Details */}
+                      <div className="space-y-2 text-sm">
+                        {enrollment.grade && (
+                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 min-w-24">
+                              <GraduationCap className="h-4 w-4 text-purple-500" />
+                              <span className="font-medium">Grade:</span>
+                            </div>
+                            <span className="font-medium">
+                              {enrollment.grade}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 min-w-24">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium">Enrolled:</span>
+                          </div>
+                          <span className="text-muted-foreground">
+                            {new Date(
+                              enrollment.createdAt
+                            ).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-sm">
-                          {new Date(enrollment.createdAt).toLocaleDateString()}
-                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -413,6 +572,43 @@ export default function MyCourses() {
                               </p>
                             </div>
                           </div>
+
+                          {enrollment.section && (
+                            <div>
+                              <h4 className="font-medium mb-2">
+                                Section Details
+                              </h4>
+                              <div className="grid grid-cols-2 gap-4 bg-muted/50 p-3 rounded-md">
+                                <div>
+                                  <h5 className="text-sm font-medium flex items-center gap-1">
+                                    <Users className="h-3.5 w-3.5 text-blue-500" />
+                                    Section
+                                  </h5>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {enrollment.section.sectionCode}
+                                  </p>
+                                </div>
+                                <div>
+                                  <h5 className="text-sm font-medium flex items-center gap-1">
+                                    <MapPin className="h-3.5 w-3.5 text-red-500" />
+                                    Room
+                                  </h5>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {enrollment.section.room}
+                                  </p>
+                                </div>
+                                <div className="col-span-2">
+                                  <h5 className="text-sm font-medium flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5 text-green-500" />
+                                    Schedule
+                                  </h5>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {enrollment.section.schedule}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -435,6 +631,39 @@ export default function MyCourses() {
               ? "Try adjusting your search or filter criteria"
               : "You haven't enrolled in any courses yet"}
           </p>
+        </div>
+      )}
+
+      {/* Floating Export Button */}
+      {enrollments.length > 0 && (
+        <div className="fixed bottom-8 right-8 z-10">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="lg"
+                  onClick={handleExportCertificate}
+                  disabled={exportingPdf}
+                  className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {exportingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-5 w-5" />
+                      Certificate of Registration
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                <p>Export your Certificate of Registration as a PDF document</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
     </div>

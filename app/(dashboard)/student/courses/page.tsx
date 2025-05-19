@@ -36,6 +36,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import Loading from "./loading";
 
@@ -1105,6 +1111,7 @@ export default function AvailableCourses() {
             return (
               <div
                 key={group.title}
+                id={`course-group-${groupKey}`}
                 className="border rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm"
               >
                 <div className="bg-slate-50 dark:bg-slate-800/50 border-b px-6 py-4">
@@ -1221,13 +1228,28 @@ export default function AvailableCourses() {
                       return (
                         <Card
                           key={course.id}
+                          id={`course-card-${course.id}`}
                           className={cn(
-                            "flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md",
-                            isSelected && "ring-2 ring-primary ring-offset-2"
+                            "flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md group",
+                            isSelected && "ring-2 ring-primary ring-offset-2",
+                            enrolledCourseMap[course.id] && "opacity-75"
                           )}
                         >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start gap-3">
+                          {/* Card top accent color based on status */}
+                          <div
+                            className={cn(
+                              "h-1.5 w-full",
+                              course.status === "OPEN"
+                                ? "bg-green-500"
+                                : course.status === "CLOSED"
+                                ? "bg-red-500"
+                                : "bg-gray-500"
+                            )}
+                          />
+
+                          <CardHeader className="pb-3 relative">
+                            {/* Checkbox positioned at top-right for better visibility */}
+                            <div className="absolute top-4 right-4">
                               <Checkbox
                                 id={`course-${course.id}`}
                                 checked={isSelected}
@@ -1235,94 +1257,111 @@ export default function AvailableCourses() {
                                   toggleCourseSelection(groupKey, course.id)
                                 }
                                 disabled={!!enrolledCourseMap[course.id]}
-                                className="mt-1"
+                                className="h-5 w-5 transition-transform group-hover:scale-110"
                               />
-                              <div className="flex-1">
-                                <div className="flex justify-between items-start mb-1">
-                                  <div>
-                                    <div className="flex flex-wrap gap-2 mb-2">
-                                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300">
-                                        {course.code}
-                                      </Badge>
+                            </div>
 
-                                      {/* Course status badge */}
-                                      {course.status === "OPEN" ? (
-                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-300">
-                                          OPEN
-                                        </Badge>
-                                      ) : course.status === "CLOSED" ? (
-                                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300">
-                                          CLOSED{" "}
-                                          {isSuperAdmin &&
-                                            "(Hidden from students)"}
-                                        </Badge>
-                                      ) : (
-                                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300">
-                                          {course.status}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <CardTitle>
-                                      <label
-                                        htmlFor={`course-${course.id}`}
-                                        className="text-lg cursor-pointer hover:text-primary"
-                                      >
-                                        {course.name}
-                                      </label>
-                                    </CardTitle>
-                                  </div>
-                                  <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300">
-                                    {course.credits}{" "}
-                                    {course.credits === 1
-                                      ? "credit"
-                                      : "credits"}
+                            <div className="flex-1 pr-8">
+                              {/* Course code and status badges */}
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300 font-medium">
+                                  {course.code}
+                                </Badge>
+
+                                {/* Course status badge */}
+                                {course.status === "OPEN" ? (
+                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                                    OPEN
                                   </Badge>
-                                </div>
-                                <CardDescription>
-                                  <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
-                                    {course.description}
-                                  </p>
-                                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-400">
-                                    <svg
-                                      className="w-4 h-4 mr-1"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                      />
-                                    </svg>
-                                    <span>
-                                      {course.faculty
-                                        ? `${
-                                            course.faculty.profile?.firstName ||
-                                            ""
-                                          } ${
-                                            course.faculty.profile?.lastName ||
-                                            ""
-                                          }`
-                                        : "No instructor assigned"}
-                                    </span>
-                                  </div>
-                                </CardDescription>
+                                ) : course.status === "CLOSED" ? (
+                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300 flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                    CLOSED{" "}
+                                    {isSuperAdmin && "(Hidden from students)"}
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-gray-500"></span>
+                                    {course.status}
+                                  </Badge>
+                                )}
+
+                                {/* Credits badge */}
+                                <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 ml-auto">
+                                  {course.credits}{" "}
+                                  {course.credits === 1 ? "credit" : "credits"}
+                                </Badge>
+                              </div>
+
+                              {/* Course title */}
+                              <CardTitle>
+                                <label
+                                  htmlFor={`course-${course.id}`}
+                                  className="text-lg cursor-pointer hover:text-primary transition-colors"
+                                >
+                                  {course.name}
+                                </label>
+                              </CardTitle>
+
+                              {/* Course description */}
+                              <CardDescription className="mt-2">
+                                <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+                                  {course.description}
+                                </p>
+                              </CardDescription>
+
+                              {/* Instructor info with improved icon */}
+                              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                <svg
+                                  className="w-4 h-4 mr-1.5 flex-shrink-0 text-slate-400"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  />
+                                </svg>
+                                <span className="truncate">
+                                  {course.faculty
+                                    ? `${
+                                        course.faculty.profile?.firstName || ""
+                                      } ${
+                                        course.faculty.profile?.lastName || ""
+                                      }`
+                                    : "No instructor assigned"}
+                                </span>
                               </div>
                             </div>
                           </CardHeader>
 
                           {course.prerequisites.length > 0 && (
-                            <div className="px-6 py-3 border-t border-dashed bg-slate-50/50 dark:bg-slate-900/20">
-                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <div className="px-6 py-3 border-t bg-slate-50/50 dark:bg-slate-900/20">
+                              <div className="flex flex-wrap items-center gap-2 mb-3">
                                 <div className="flex items-center">
-                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">
+                                  <svg
+                                    className="w-4 h-4 mr-1.5 text-slate-500"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                    />
+                                  </svg>
+                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                     Prerequisites
                                   </span>
                                   <Badge
                                     variant="outline"
-                                    className="text-xs font-normal bg-white dark:bg-slate-800"
+                                    className="text-xs font-normal bg-white dark:bg-slate-800 ml-2"
                                   >
                                     {course.prerequisites.length}{" "}
                                     {course.prerequisites.length === 1
@@ -1336,72 +1375,9 @@ export default function AvailableCourses() {
                                   {course.prerequisites.every((p) =>
                                     completedCourseIds.includes(p.id)
                                   ) ? (
-                                    <div className="flex items-center text-green-600 dark:text-green-500 text-xs font-medium">
-                                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                                      All prerequisites met
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center text-amber-600 dark:text-amber-500 text-xs font-medium">
-                                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
-                                      Prerequisites needed
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {course.prerequisites.map((prerequisite) => {
-                                  const isCompleted =
-                                    completedCourseIds.includes(
-                                      prerequisite.id
-                                    );
-                                  return (
-                                    <div
-                                      key={prerequisite.id}
-                                      className={cn(
-                                        "flex items-center px-2.5 py-1 rounded-md text-xs border",
-                                        isCompleted
-                                          ? "border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
-                                          : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                                      )}
-                                    >
-                                      <span className="font-medium">
-                                        {prerequisite.code}
-                                      </span>
-                                      {isCompleted && (
-                                        <svg
-                                          className="ml-1.5 w-3.5 h-3.5 text-green-500"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M5 13l4 4L19 7"
-                                          />
-                                        </svg>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          <CardFooter className="mt-auto pt-3 pb-4 px-6 flex flex-col gap-3">
-                            {course.prerequisites.length > 0 && (
-                              <div className="w-full">
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full text-xs h-8 border-dashed"
-                                    >
+                                    <div className="flex items-center text-green-600 dark:text-green-500 text-xs font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
                                       <svg
-                                        className="w-3.5 h-3.5 mr-1.5"
+                                        className="w-3.5 h-3.5 mr-1"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -1410,113 +1386,183 @@ export default function AvailableCourses() {
                                           strokeLinecap="round"
                                           strokeLinejoin="round"
                                           strokeWidth={2}
-                                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                         />
                                       </svg>
-                                      View prerequisite details
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-2 text-xl">
-                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                                          {course.code}
-                                        </Badge>
-                                        Prerequisites
-                                      </DialogTitle>
-                                      <DialogDescription className="pt-2 text-base">
-                                        The following courses must be completed
-                                        before enrolling in{" "}
-                                        <span className="font-medium">
-                                          {course.name}
-                                        </span>
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-3 mt-4">
-                                      {course.prerequisites.map(
-                                        (prerequisite) => {
-                                          const isCompleted =
-                                            completedCourseIds.includes(
-                                              prerequisite.id
-                                            );
-                                          return (
-                                            <div
-                                              key={prerequisite.id}
-                                              className={cn(
-                                                "border rounded-lg p-4 transition-all",
-                                                isCompleted
-                                                  ? "border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800"
-                                                  : "border-slate-200 dark:border-slate-700"
-                                              )}
-                                            >
-                                              <div className="flex justify-between items-start">
-                                                <div>
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300">
-                                                      {prerequisite.code}
-                                                    </Badge>
-                                                    {isCompleted ? (
-                                                      <span className="inline-flex items-center text-xs font-medium text-green-600">
-                                                        <svg
-                                                          className="w-3.5 h-3.5 mr-1"
-                                                          fill="none"
-                                                          viewBox="0 0 24 24"
-                                                          stroke="currentColor"
-                                                        >
-                                                          <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                          />
-                                                        </svg>
-                                                        Completed
-                                                      </span>
-                                                    ) : (
-                                                      <span className="inline-flex items-center text-xs font-medium text-amber-600">
-                                                        <svg
-                                                          className="w-3.5 h-3.5 mr-1"
-                                                          fill="none"
-                                                          viewBox="0 0 24 24"
-                                                          stroke="currentColor"
-                                                        >
-                                                          <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                                          />
-                                                        </svg>
-                                                        Required
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                  <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                                                    {prerequisite.name}
-                                                  </h4>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-                                      )}
+                                      All prerequisites met
                                     </div>
-                                    <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                                      You must complete all prerequisites before
-                                      you can enroll in this course.
+                                  ) : (
+                                    <div className="flex items-center text-amber-600 dark:text-amber-500 text-xs font-medium bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-full">
+                                      <svg
+                                        className="w-3.5 h-3.5 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                        />
+                                      </svg>
+                                      Prerequisites needed
                                     </div>
-                                  </DialogContent>
-                                </Dialog>
+                                  )}
+                                </div>
                               </div>
-                            )}
 
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {course.prerequisites.map((prerequisite) => {
+                                  const isCompleted =
+                                    completedCourseIds.includes(
+                                      prerequisite.id
+                                    );
+
+                                  // Find the prerequisite course details
+                                  const prereqCourse = courses.find(
+                                    (c) => c.id === prerequisite.id
+                                  );
+
+                                  return (
+                                    <TooltipProvider key={prerequisite.id}>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className={cn(
+                                              "flex items-center px-3 py-1.5 h-auto text-xs transition-all",
+                                              isCompleted
+                                                ? "border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+                                                : "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                            )}
+                                            onClick={() => {
+                                              // Find the group that contains this prerequisite course
+                                              const groupKey = Object.keys(
+                                                groupedCourses
+                                              ).find((key) =>
+                                                groupedCourses[
+                                                  key
+                                                ].courses.some(
+                                                  (c) =>
+                                                    c.id === prerequisite.id
+                                                )
+                                              );
+
+                                              if (groupKey) {
+                                                // Scroll to the group
+                                                const element =
+                                                  document.getElementById(
+                                                    `course-group-${groupKey}`
+                                                  );
+                                                if (element) {
+                                                  element.scrollIntoView({
+                                                    behavior: "smooth",
+                                                    block: "start",
+                                                  });
+
+                                                  // Highlight the course card
+                                                  const courseCard =
+                                                    document.getElementById(
+                                                      `course-card-${prerequisite.id}`
+                                                    );
+                                                  if (courseCard) {
+                                                    courseCard.classList.add(
+                                                      "ring-2",
+                                                      "ring-primary",
+                                                      "ring-offset-2"
+                                                    );
+                                                    setTimeout(() => {
+                                                      courseCard.classList.remove(
+                                                        "ring-2",
+                                                        "ring-primary",
+                                                        "ring-offset-2"
+                                                      );
+                                                    }, 2000);
+                                                  }
+                                                }
+                                              }
+                                            }}
+                                          >
+                                            {isCompleted ? (
+                                              <svg
+                                                className="w-3.5 h-3.5 mr-1.5 text-green-500 flex-shrink-0"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                              </svg>
+                                            ) : (
+                                              <svg
+                                                className="w-3.5 h-3.5 mr-1.5 text-amber-500 flex-shrink-0"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                                />
+                                              </svg>
+                                            )}
+                                            <span className="font-medium truncate">
+                                              {prerequisite.code}
+                                            </span>
+                                            <svg
+                                              className="w-3.5 h-3.5 ml-1 text-slate-400 flex-shrink-0"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                              />
+                                            </svg>
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side="top"
+                                          className="max-w-xs"
+                                        >
+                                          <div className="space-y-1">
+                                            <p className="font-medium">
+                                              {prerequisite.name}
+                                            </p>
+                                            <p className="text-xs text-slate-500">
+                                              {isCompleted
+                                                ? "You have completed this prerequisite course"
+                                                : "Click to navigate to this prerequisite course"}
+                                            </p>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <CardFooter className="mt-auto pt-3 pb-4 px-6 flex flex-col gap-3">
                             {enrolledCourseMap[course.id] ? (
                               <Button
-                                className="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                                className="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 h-10 rounded-md"
                                 disabled={true}
                               >
                                 <svg
-                                  className="w-4 h-4 mr-2"
+                                  className="w-4 h-4 mr-2 flex-shrink-0"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                   stroke="currentColor"
@@ -1528,19 +1574,27 @@ export default function AvailableCourses() {
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                   />
                                 </svg>
-                                {`Already Enrolled (${
-                                  enrolledCourseMap[course.id]
-                                })`}
+                                <span className="truncate">
+                                  {`Already Enrolled (${
+                                    enrolledCourseMap[course.id]
+                                  })`}
+                                </span>
                               </Button>
                             ) : (
                               <Button
                                 className={cn(
-                                  "w-full font-medium",
-                                  course.prerequisites.length > 0 &&
-                                    !course.prerequisites.every((p) =>
-                                      completedCourseIds.includes(p.id)
-                                    ) &&
-                                    "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                                  "w-full font-medium h-10 rounded-md transition-all",
+                                  !enrollmentStatus.isEnrollmentOpen ||
+                                    !verificationStatus.isVerified ||
+                                    unitsInfo.currentEnrolledUnits >=
+                                      unitsInfo.maxUnits
+                                    ? "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                                    : course.prerequisites.length > 0 &&
+                                      !course.prerequisites.every((p) =>
+                                        completedCourseIds.includes(p.id)
+                                      )
+                                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white"
                                 )}
                                 onClick={() => handleEnrollment(course.id)}
                                 disabled={
@@ -1557,21 +1611,81 @@ export default function AvailableCourses() {
                               >
                                 {isEnrolling ? (
                                   <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Enrolling...
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                                    <span>Enrolling...</span>
                                   </>
                                 ) : !verificationStatus.isVerified ? (
-                                  "Account Not Verified"
+                                  <>
+                                    <svg
+                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                      />
+                                    </svg>
+                                    <span>Account Not Verified</span>
+                                  </>
                                 ) : unitsInfo.currentEnrolledUnits >=
                                   unitsInfo.maxUnits ? (
-                                  "Units Maxed Out"
+                                  <>
+                                    <svg
+                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                      />
+                                    </svg>
+                                    <span>Units Maxed Out</span>
+                                  </>
                                 ) : course.prerequisites.length > 0 &&
                                   !course.prerequisites.every((p) =>
                                     completedCourseIds.includes(p.id)
                                   ) ? (
-                                  "Prerequisites Required"
+                                  <>
+                                    <svg
+                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                      />
+                                    </svg>
+                                    <span>Prerequisites Required</span>
+                                  </>
                                 ) : (
-                                  "Enroll in Course"
+                                  <>
+                                    <svg
+                                      className="w-4 h-4 mr-2 flex-shrink-0"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                      />
+                                    </svg>
+                                    <span>Enroll in Course</span>
+                                  </>
                                 )}
                               </Button>
                             )}

@@ -30,7 +30,7 @@ model Profile {
   studentId       String?           @unique
   schoolYear      Int?
   isVerified      Boolean           @default(false)
-  maxUnits        Int               @default(18) // Default max units per semester
+  maxUnits        Int               @default(18)
   userId          String            @unique
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -153,12 +153,12 @@ model EnrollmentPeriod {
   id          String   @id @default(cuid())
   name        String
   description String?
-  semester    String? // Added semester field (optional)
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  semester    String?
 }
 
 model FacultyInvitation {

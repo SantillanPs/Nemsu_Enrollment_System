@@ -14,6 +14,9 @@ export async function GET() {
     // Get the current user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email! },
+      include: {
+        profile: true,
+      },
     });
 
     if (!user) {
@@ -28,45 +31,12 @@ export async function GET() {
       );
     }
 
-    // Get enrollments for this student with course details
-    const enrollments = await prisma.enrollment.findMany({
-      where: {
-        studentId: user.id,
-      },
-      include: {
-        course: {
-          include: {
-            faculty: {
-              include: {
-                profile: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        section: {
-          select: {
-            id: true,
-            sectionCode: true,
-            schedule: true,
-            room: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json(enrollments);
+    // Return the student profile
+    return NextResponse.json(user.profile);
   } catch (error) {
-    console.error("Error fetching student courses:", error);
+    console.error("Error fetching student profile:", error);
     return NextResponse.json(
-      { error: "Failed to fetch enrolled courses" },
+      { error: "Failed to fetch student profile" },
       { status: 500 }
     );
   } finally {
