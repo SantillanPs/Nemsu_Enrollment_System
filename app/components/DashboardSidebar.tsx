@@ -83,6 +83,11 @@ const navigationItems: Record<string, NavigationItem[]> = {
       href: "/admin/enrollment-periods",
       icon: Calendar,
     },
+    {
+      name: "Course Scheduling",
+      href: "/admin/course-scheduling",
+      icon: Calendar,
+    },
   ],
   super_admin: [
     { name: "Dashboard", href: "/super-admin", icon: Home },

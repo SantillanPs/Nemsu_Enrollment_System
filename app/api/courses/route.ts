@@ -4,7 +4,10 @@ import { Course, Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { hasRoleAccess } from "@/lib/utils/role-check";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Check if we should include sections
+  const { searchParams } = new URL(request.url);
+  const includeSections = searchParams.get("includeSections") === "true";
   try {
     // Get the current user's session to check their role
     const session = await getServerSession();
@@ -149,6 +152,7 @@ export async function GET() {
           name: true,
         },
       },
+      ...(includeSections ? { sections: true } : {}),
     };
 
     const orderByOptions = [
