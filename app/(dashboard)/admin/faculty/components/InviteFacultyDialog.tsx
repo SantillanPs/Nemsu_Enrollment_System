@@ -87,7 +87,10 @@ export function InviteFacultyDialog() {
       console.error("Invitation error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create invitation",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to create invitation",
         variant: "destructive",
       });
     } finally {
@@ -105,18 +108,126 @@ export function InviteFacultyDialog() {
     }
   };
 
-  // Copy invitation URL to clipboard
+  // Copy invitation URL to clipboard with fallback
   const copyToClipboard = () => {
-    if (invitationUrl) {
-      navigator.clipboard.writeText(invitationUrl);
-      setCopied(true);
-      toast({
-        title: "Copied to Clipboard",
-        description: "Invitation link has been copied to clipboard.",
-      });
+    if (!invitationUrl) return;
 
-      // Reset copied state after 3 seconds
-      setTimeout(() => setCopied(false), 3000);
+    console.log("Attempting to copy URL:", invitationUrl);
+
+    // Fallback copy function using document.execCommand
+    const fallbackCopyTextToClipboard = (text: string) => {
+      try {
+        // Create a temporary textarea element
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Make the textarea out of viewport
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+
+        // Focus and select the text
+        textArea.focus();
+        textArea.select();
+
+        // Execute the copy command
+        const successful = document.execCommand("copy");
+
+        // Remove the temporary element
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          console.log("Fallback: Copying text command was successful");
+          return true;
+        } else {
+          console.error("Fallback: Could not copy text");
+          return false;
+        }
+      } catch (err) {
+        console.error("Fallback: Oops, unable to copy", err);
+        return false;
+      }
+    };
+
+    try {
+      // Check if we're in a browser environment
+      if (typeof window === "undefined" || typeof document === "undefined") {
+        console.warn("Not in browser environment, cannot copy");
+        return;
+      }
+
+      // Try using the Clipboard API first
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+        console.log("Using Clipboard API");
+
+        navigator.clipboard
+          .writeText(invitationUrl)
+          .then(() => {
+            console.log("Clipboard API: Text successfully copied");
+            setCopied(true);
+            toast({
+              title: "Copied to Clipboard",
+              description: "Invitation link has been copied to clipboard.",
+            });
+
+            // Reset copied state after 3 seconds
+            setTimeout(() => setCopied(false), 3000);
+          })
+          .catch((err) => {
+            console.error("Clipboard API failed:", err);
+
+            // Try fallback method
+            console.log("Trying fallback method...");
+            const fallbackSuccess = fallbackCopyTextToClipboard(invitationUrl);
+
+            if (fallbackSuccess) {
+              setCopied(true);
+              toast({
+                title: "Copied to Clipboard",
+                description: "Invitation link has been copied to clipboard.",
+              });
+
+              // Reset copied state after 3 seconds
+              setTimeout(() => setCopied(false), 3000);
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Failed to copy",
+                description: "Please select and copy the link manually.",
+              });
+            }
+          });
+      } else {
+        // Fallback for browsers without clipboard API
+        console.log("Clipboard API not available, using fallback");
+        const fallbackSuccess = fallbackCopyTextToClipboard(invitationUrl);
+
+        if (fallbackSuccess) {
+          setCopied(true);
+          toast({
+            title: "Copied to Clipboard",
+            description: "Invitation link has been copied to clipboard.",
+          });
+
+          // Reset copied state after 3 seconds
+          setTimeout(() => setCopied(false), 3000);
+        } else {
+          toast({
+            variant: "warning",
+            title: "Copy Link Manually",
+            description: "Please select and copy the link manually.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error in copy process:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description:
+          "Failed to copy to clipboard. Please try again or copy manually.",
+      });
     }
   };
 
@@ -157,7 +268,9 @@ export function InviteFacultyDialog() {
               <Label htmlFor="expirationDays">Invitation Expires In</Label>
               <Select
                 defaultValue="7"
-                onValueChange={(value) => form.setValue("expirationDays", value)}
+                onValueChange={(value) =>
+                  form.setValue("expirationDays", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select expiration period" />
@@ -198,11 +311,7 @@ export function InviteFacultyDialog() {
             <div className="space-y-2">
               <Label>Invitation Link</Label>
               <div className="flex items-center">
-                <Input
-                  value={invitationUrl}
-                  readOnly
-                  className="pr-10"
-                />
+                <Input value={invitationUrl} readOnly className="pr-10" />
                 <Button
                   type="button"
                   variant="ghost"
@@ -218,7 +327,8 @@ export function InviteFacultyDialog() {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Share this link with the faculty member. The link will expire after the selected period.
+                Share this link with the faculty member. The link will expire
+                after the selected period.
               </p>
             </div>
 

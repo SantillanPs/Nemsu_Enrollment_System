@@ -52,24 +52,24 @@ interface NavigationItem {
 // Define navigation items for each role
 const navigationItems: Record<string, NavigationItem[]> = {
   student: [
-    { name: "Dashboard", href: "/student", icon: Home },
+    // { name: "Dashboard", href: "/student", icon: Home },
     { name: "My Courses", href: "/student/my-courses", icon: BookOpen },
     { name: "Enroll Courses", href: "/student/courses", icon: PlusSquare },
     { name: "Documents", href: "/student/profile/documents", icon: FileText },
   ],
   faculty: [
-    { name: "Dashboard", href: "/faculty", icon: Home },
+    // { name: "Dashboard", href: "/faculty", icon: Home },
     { name: "My Courses", href: "/faculty/courses", icon: BookOpen },
-    {
-      name: "Available Courses",
-      href: "/faculty/available-courses",
-      icon: PlusSquare,
-    },
-    { name: "Verify Students", href: "/faculty/students", icon: Users },
-    { name: "Student Documents", href: "/faculty/documents", icon: FileText },
+    // {
+    //   name: "Available Courses",
+    //   href: "/faculty/available-courses",
+    //   icon: PlusSquare,
+    // },
+    // { name: "Verify Students", href: "/faculty/students", icon: Users },
+    // { name: "Student Documents", href: "/faculty/documents", icon: FileText },
   ],
   admin: [
-    { name: "Dashboard", href: "/admin", icon: Home },
+    // { name: "Dashboard", href: "/admin", icon: Home },
     { name: "Manage Courses", href: "/admin/courses", icon: BookOpen },
     { name: "Faculty Management", href: "/admin/faculty", icon: Users },
     {
